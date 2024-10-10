@@ -1,38 +1,28 @@
+// FileManager.java
+
+import javax.microedition.io.Connector;
+import javax.microedition.io.FileConnection;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStream;
-import javax.microedition.io.Connector;
-import javax.microedition.io.FileConnection;
+import java.util.Enumeration;
+import java.util.Vector;
+import javax.swing.JFileChooser;
 
 public class FileManager {
     private String downloadDir;
 
     public FileManager() {
-        if (isJ2ME()) {
-            downloadDir = "file:///root1/";
-        } else {
-            downloadDir = System.getProperty("java.io.tmpdir");
-            if (downloadDir == null) {
-                downloadDir = System.getProperty("user.home");
-            }
-        }
+        this.downloadDir = null;
     }
 
-    public String getDownloadDir() {
-        if (downloadDir == null) {
-            throw new IllegalStateException("Download directory is not set");
-        }
-        return downloadDir;
-    }
-
-    public void setDownloadDir(String downloadDir) {
-        this.downloadDir = downloadDir;
-        if (!isJ2ME()) {
-            File dir = new File(downloadDir);
-            if (!dir.exists()) {
-                dir.mkdirs();
-            }
+    public boolean isJ2ME() {
+        try {
+            Class.forName("javax.microedition.io.Connector");
+            return true;
+        } catch (ClassNotFoundException e) {
+            return false;
         }
     }
 
@@ -42,18 +32,6 @@ public class FileManager {
         } else {
             return selectFileForUploadJVM();
         }
-    }
-
-    public void downloadFile(String fileName, String fileContent) {
-        if (isJ2ME()) {
-            downloadFileJ2ME(fileName, fileContent);
-        } else {
-            downloadFileJVM(fileName, fileContent);
-        }
-    }
-
-    private boolean isJ2ME() {
-        return System.getProperty("microedition.configuration") != null;
     }
 
     private String selectFileForUploadJ2ME() {
@@ -66,6 +44,8 @@ public class FileManager {
                     String file = (String) fileEnum.nextElement();
                     fileVector.addElement(file);
                 }
+                // Allow the user to select a file from the list
+                // For simplicity, return the first file for now
                 String selectedFile = (String) fileVector.elementAt(0);
                 fc.close();
                 return selectedFile;
@@ -89,6 +69,14 @@ public class FileManager {
         }
     }
 
+    public void downloadFile(String fileName, String fileContent) {
+        if (isJ2ME()) {
+            downloadFileJ2ME(fileName, fileContent);
+        } else {
+            downloadFileJVM(fileName, fileContent);
+        }
+    }
+
     private void downloadFileJ2ME(String fileName, String fileContent) {
         try {
             FileConnection fc = (FileConnection) Connector.open(downloadDir + fileName);
@@ -117,37 +105,22 @@ public class FileManager {
             // Handle exception
         }
     }
-}
-    private boolean isJ2ME() {
-        return System.getProperty("microedition.configuration") != null;
-    }
 
-    private void downloadFileJ2ME(String fileName, String fileContent) {
-        try {
-            FileConnection fc = (FileConnection) Connector.open(downloadDir + fileName);
-            if (!fc.exists()) {
-                fc.create();
+    public void setDownloadDir(String downloadDir) {
+        this.downloadDir = downloadDir;
+        if (!isJ2ME()) {
+            File dir = new File(downloadDir);
+            if (!dir.exists()) {
+                dir.mkdirs();
             }
-            OutputStream os = fc.openOutputStream();
-            os.write(fileContent.getBytes());
-            os.close();
-            fc.close();
-        } catch (Exception e) {
-            // Handle exception
         }
     }
 
-    private void downloadFileJVM(String fileName, String fileContent) {
-        try {
-            File file = new File(downloadDir + fileName);
-            if (!file.exists()) {
-                file.createNewFile();
-            }
-            FileWriter fw = new FileWriter(file);
-            fw.write(fileContent);
-            fw.close();
-        } catch (IOException e) {
-            // Handle exception
+    public String getDownloadDir() {
+        if (downloadDir == null) {
+            // Return a default directory or handle this situation in a more user-friendly way
+            return System.getProperty("java.io.tmpdir");
         }
+        return downloadDir;
     }
 }
