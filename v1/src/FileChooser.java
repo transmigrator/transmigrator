@@ -1,42 +1,21 @@
-import javax.microedition.io.Connector;
-import javax.microedition.io.FileConnection;
 import javax.swing.JFileChooser;
-import java.io.File;
+import javax.swing.filechooser.FileNameExtensionFilter;
 
-public class FileChooser {
-    public static String selectFile() {
-        if (isJ2ME()) {
-            return selectFileJ2ME();
-        } else {
-            return selectFileJVM();
-        }
+public class JFileChooser {
+    public JFileChooser() {}
+
+    public int showOpenDialog(Object parent) {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+        int returnValue = fileChooser.showOpenDialog(null);
+        return returnValue;
     }
 
-    private static boolean isJ2ME() {
-        return System.getProperty("microedition.configuration") != null;
+    public File getSelectedFile() {
+        JFileChooser fileChooser = new JFileChooser();
+        return fileChooser.getSelectedFile();
     }
-
-    private static String selectFileJ2ME() {
-        try {
-            FileConnection fc = (FileConnection) Connector.open("file:///root1/");
-            if (fc.isDirectory()) {
-                Enumeration fileEnum = fc.list();
-                Vector fileVector = new Vector();
-                while (fileEnum.hasMoreElements()) {
-                    String file = (String) fileEnum.nextElement();
-                    fileVector.addElement(file);
-                }
-                String selectedFile = (String) fileVector.elementAt(0);
-                fc.close();
-                return selectedFile;
-            } else {
-                fc.close();
-                return null;
-            }
-        } catch (Exception e) {
-            return null;
-        }
-    }
+}
 
     private static String selectFileJVM() {
         JFileChooser fileChooser = new JFileChooser();
