@@ -1,0 +1,4 @@
+.address-bar {
+    -fx-min-width: 100px;
+    -fx-max-width: 100%;
+}
