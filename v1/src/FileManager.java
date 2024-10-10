@@ -1,6 +1,5 @@
 import javax.microedition.io.Connector;
 import javax.microedition.io.FileConnection;
-import javax.microedition.io.HttpConnection;
 import javax.microedition.io.HttpsConnection;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -55,9 +54,78 @@ public class FileManager {
         }
     }
 
-    public void uploadFile(String filename) {
-        // This method is not implemented as it's not clear what the upload URL should be
-        // If you want to implement file upload, you should replace the URL with your server's upload URL
-        // and handle the upload logic accordingly
+    public void uploadFile(String url) {
+        // Select a file from the local file system
+        String selectedFile = FileUtils.selectFile();
+
+        // If a file was selected, upload it to the specified URL
+        if (selectedFile != null) {
+            try {
+                // Create a connection to the URL
+                HttpsConnection hc = (HttpsConnection) Connector.open(url);
+
+                // Set the request method to POST
+                hc.setRequestMethod(HttpsConnection.POST);
+
+                // Set the content type to multipart/form-data
+                hc.setRequestProperty("Content-Type", "multipart/form-data; boundary=---------------------------boundary");
+
+                // Create an output stream to write the file data to
+                OutputStream os = hc.openOutputStream();
+
+                // Write the file data to the output stream
+                byte[] fileData = getFileData(selectedFile);
+                os.write(fileData);
+
+                // Close the output stream
+                os.close();
+
+                // Get the response code from the server
+                int responseCode = hc.getResponseCode();
+
+                // If the response code is 200, the file was uploaded successfully
+                if (responseCode == HttpsConnection.HTTP_OK) {
+                    System.out.println("File uploaded successfully!");
+                } else {
+                    System.out.println("Error uploading file: " + responseCode);
+                }
+
+                // Close the connection
+                hc.close();
+            } catch (Exception e) {
+                System.out.println("Error uploading file: " + e.getMessage());
+            }
+        }
+    }
+
+    private byte[] getFileData(String filePath) {
+        try {
+            // Create a file connection to the selected file
+            FileConnection fc = (FileConnection) Connector.open("file://" + filePath);
+
+            // Get the file size
+            int fileSize = (int) fc.fileSize();
+
+            // Create a byte array to store the file data
+            byte[] fileData = new byte[fileSize];
+
+            // Create an input stream to read the file data
+            InputStream is = fc.openInputStream();
+
+            // Read the file data into the byte array
+            is.read(fileData);
+
+            // Close the input stream
+            is.close();
+
+            // Close the file connection
+            fc.close();
+
+            // Return the file data
+            return fileData;
+        } catch (Exception e) {
+            System.out.println("Error reading file data: " + e.getMessage());
+            return null;
+        }
     }
 }
