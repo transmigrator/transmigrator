@@ -16,39 +16,35 @@ import javax.swing.JFileChooser;
 
 public class FileUtils {
     public static String selectFile() {
-        String platform = System.getProperty("microedition.platform");
-        if (platform != null) {
-            // J2ME platform
+        try {
+            // Try to use the J2ME implementation
             return selectFileJ2ME();
-        } else {
-            // JVM platform
+        } catch (Exception e) {
+            // Fall back to the JVM implementation
             return selectFileJVM();
         }
     }
 
     private static String selectFileJ2ME() {
-        // J2ME implementation
-        String selectedFile = null;
-        try {
-            // Create a file chooser UI component
-            FileChooser fileChooser = new FileChooser();
-            // Show the file chooser UI component
-            fileChooser.show();
-            // Get the selected file
-            selectedFile = fileChooser.getSelectedFile();
-        } catch (Exception e) {
-            // Handle exception
-        }
-        return selectedFile;
+        // Create a file chooser UI component
+        FileChooser fileChooser = new FileChooser();
+        // Show the file chooser UI component
+        fileChooser.show();
+        // Return the selected file path
+        return fileChooser.getSelectedFile();
     }
 
     private static String selectFileJVM() {
-        // JVM implementation
+        // Create a file chooser
         JFileChooser fileChooser = new JFileChooser();
+        // Show the file chooser dialog
         int returnValue = fileChooser.showOpenDialog(null);
+        // Check if a file was selected
         if (returnValue == JFileChooser.APPROVE_OPTION) {
+            // Return the selected file path
             return fileChooser.getSelectedFile().getPath();
         } else {
+            // Return null if no file was selected
             return null;
         }
     }
@@ -73,14 +69,6 @@ public class FileUtils {
             setCommandListener(this);
         }
 
-        public void show() {
-            Display.getDisplay(null).setCurrent(this);
-        }
-
-        public String getSelectedFile() {
-            return selectedFile;
-        }
-
         public void commandAction(Command c, Displayable d) {
             if (c == selectCommand) {
                 // Get the selected file
@@ -90,12 +78,34 @@ public class FileUtils {
             }
         }
 
+        public String getSelectedFile() {
+            return selectedFile;
+        }
+
+        public void show() {
+            Display.getDisplay(null).setCurrent(this);
+        }
+
         private String[] getFileList() {
+            // Check if we are running on JVM or J2ME
+            String platform = System.getProperty("microedition.platform");
+            if (platform != null) {
+                // Running on J2ME, use jsr-75 FileConnection API
+                return getFileListJ2ME();
+            } else {
+                // Running on JVM, use file:/// protocol
+                return getFileListJVM();
+            }
+        }
+
+        private String[] getFileListJ2ME() {
             // Get a list of files from the device's file system
             String[] files = null;
             try {
-                FileConnection fc = (FileConnection) Connector.open("file:///");
+                // Get the root directory of the file system
+                FileConnection fc = (FileConnection) Connector.open("file:///root1/");
                 if (fc.isDirectory()) {
+                    // Get a list of files in the root directory
                     Enumeration fileEnum = fc.list();
                     Vector fileVector = new Vector();
                     while (fileEnum.hasMoreElements()) {
@@ -108,6 +118,29 @@ public class FileUtils {
                     fileVector.copyInto(files);
                 }
                 fc.close();
+            } catch (Exception e) {
+                // Handle exception
+            }
+            return files;
+        }
+
+        private String[] getFileListJVM() {
+            // Get a list of files from the device's file system
+            String[] files = null;
+            try {
+                // Get the root directory of the file system
+                java.io.File rootDir = new java.io.File("file:///.");
+                // Get a list of files in the root directory
+                String[] fileArray = rootDir.list();
+                Vector fileVector = new Vector();
+                for (int i = 0; i < fileArray.length; i++) {
+                    String file = fileArray[i];
+                    if (file.endsWith(".txt")) {
+                        fileVector.addElement(file);
+                    }
+                }
+                files = new String[fileVector.size()];
+                fileVector.copyInto(files);
             } catch (Exception e) {
                 // Handle exception
             }
