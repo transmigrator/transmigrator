@@ -1,57 +1,61 @@
-import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Random;
 
 public class ProxyMesh {
-    private Map<String, ProxyChain> proxyChains;
-    private static final int NUM_PROXIES_IN_SERIES = 3;
+    private List<Proxy> proxies; // all available proxies
+    private int nextProxyIndex; // index of the next proxy to use
+    private Random random; // random number generator
 
-    public ProxyMesh() {
-        this.proxyChains = new ConcurrentHashMap<>();
+    public ProxyMesh(List<Proxy> proxies) {
+        this.proxies = proxies;
+        this.nextProxyIndex = 0;
+        this.random = new Random();
     }
 
-    public void addProxyChain(ProxyChain proxyChain) {
-        if (proxyChain != null) {
-            proxyChains.put(proxyChain.getId(), proxyChain);
+    public ProxyChain createProxyChain() {
+        ProxyChain chain = new ProxyChain();
+
+        // select the next three proxies from the queue
+        Proxy[] selectedProxies = new Proxy[3];
+        for (int i = 0; i < 3; i++) {
+            selectedProxies[i] = proxies.get(nextProxyIndex);
+            nextProxyIndex = (nextProxyIndex + 1) % proxies.size();
+        }
+
+        // randomly permute the selected proxies
+        shuffleArray(selectedProxies);
+
+        // create a new ProxyChain with the permuted proxies
+        chain.setEntryProxy(selectedProxies[0]);
+        chain.setMiddleProxy(selectedProxies[1]);
+        chain.setExitProxy(selectedProxies[2]);
+
+        return chain;
+    }
+
+    private void shuffleArray(Proxy[] array) {
+        for (int i = array.length - 1; i > 0; i--) {
+            int index = random.nextInt(i + 1);
+            Proxy temp = array[index];
+            array[index] = array[i];
+            array[i] = temp;
         }
     }
 
-    public List<ProxyChain> getProxyChains() {
-        return new ArrayList<>(proxyChains.values());
+    public List<Proxy> getProxies() {
+        return proxies;
     }
 
-    public void createProxyMesh(String[] proxyList, int numPackets) {
-        if (proxyList == null || proxyList.length == 0) {
-            throw new IllegalArgumentException("Proxy list cannot be null or empty");
-        }
-
-        int proxyIndex = 0;
-        for (int i = 0; i < numPackets; i++) {
-            ProxyChain proxyChain = new ProxyChain(NUM_PROXIES_IN_SERIES);
-            for (int j = 0; j < NUM_PROXIES_IN_SERIES; j++) {
-                String proxy = proxyList[proxyIndex % proxyList.length];
-                proxyChain.addProxy(new InetSocketAddress(proxy, 8080));
-                proxyIndex++;
-            }
-            addProxyChain(proxyChain);
-        }
+    public void setProxies(List<Proxy> proxies) {
+        this.proxies = proxies;
     }
 
-    public void removeProxyChain(String id) {
-        if (id != null) {
-            proxyChains.remove(id);
-        }
+    public int getNextProxyIndex() {
+        return nextProxyIndex;
     }
 
-    public void processUrl(String url) {
-        // TO DO: implement logic for processing URL using the proxy mesh
-        // This should include encryption, TLS/SSL tunneling, and checksum validation
-    }
-
-    public void sendPacket(Packet packet) {
-        // TO DO: implement logic for sending packets through the proxy mesh
-        // This should include encryption, TLS/SSL tunneling, and checksum validation
+    public void setNextProxyIndex(int nextProxyIndex) {
+        this.nextProxyIndex = nextProxyIndex;
     }
 }
