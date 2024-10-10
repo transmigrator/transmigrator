@@ -87,8 +87,12 @@ public class FileManager {
             os.write(fileContent.getBytes());
             os.close();
             fc.close();
-        } catch (Exception e) {
-            // Handle exception
+        } catch (IOException e) {
+            // Handle exception, e.g., log the error or display an error message
+            System.out.println("Error downloading file: " + e.getMessage());
+        } catch (SecurityException e) {
+            // Handle exception, e.g., log the error or display an error message
+            System.out.println("Security error downloading file: " + e.getMessage());
         }
     }
 
@@ -102,7 +106,11 @@ public class FileManager {
             fw.write(fileContent);
             fw.close();
         } catch (IOException e) {
-            // Handle exception
+            // Handle exception, e.g., log the error or display an error message
+            System.out.println("Error downloading file: " + e.getMessage());
+        } catch (SecurityException e) {
+            // Handle exception, e.g., log the error or display an error message
+            System.out.println("Security error downloading file: " + e.getMessage());
         }
     }
 
