@@ -1,69 +1,28 @@
-import javax.microedition.io.Connector;
-import javax.microedition.io.FileConnection;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.Enumeration;
-import java.util.Vector;
+
+import javax.microedition.io.Connector;
+import javax.microedition.io.FileConnection;
 
 public class FileUtils {
-    public static boolean isJ2ME() {
-        try {
-            Class.forName("javax.microedition.io.Connector");
-            return true;
-        } catch (ClassNotFoundException e) {
-            return false;
-        }
-    }
-
-    public static String selectFileJ2ME() {
-        try {
-            FileConnection fc = (FileConnection) Connector.open("file:///root1/");
-            if (fc.isDirectory()) {
-                Enumeration fileEnum = fc.list();
-                Vector fileVector = new Vector();
-                while (fileEnum.hasMoreElements()) {
-                    String file = (String) fileEnum.nextElement();
-                    fileVector.addElement(file);
-                }
-                // Create a file chooser to select a file
-                FileChooser fileChooser = new FileChooser();
-                fileChooser.setFiles(fileVector);
-                int selectedIndex = fileChooser.showFileChooser();
-                if (selectedIndex != -1) {
-                    String selectedFile = (String) fileVector.elementAt(selectedIndex);
-                    fc.close();
-                    return selectedFile;
-                } else {
-                    fc.close();
-                    return null;
-                }
-            } else {
-                fc.close();
-                return null;
-            }
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    public static String selectFileJVM() {
-        JFileChooser fileChooser = new JFileChooser();
-        int returnValue = fileChooser.showOpenDialog(null);
-        if (returnValue == JFileChooser.APPROVE_OPTION) {
-            File selectedFile = fileChooser.getSelectedFile();
-            return selectedFile.getAbsolutePath();
-        } else {
-            return null;
-        }
-    }
-
     public static void saveFile(String fileName, String fileContent) {
         if (isJ2ME()) {
             saveFileJ2ME(fileName, fileContent);
         } else {
             saveFileJVM(fileName, fileContent);
+        }
+    }
+
+    private static boolean isJ2ME() {
+        try {
+            Class.forName("javax.microedition.io.Connector");
+            return true;
+        } catch (ClassNotFoundException e) {
+            // Log the error or handle it in some way
+            System.out.println("Error loading javax.microedition.io.Connector: " + e.getMessage());
+            return false;
         }
     }
 
@@ -77,12 +36,9 @@ public class FileUtils {
             os.write(fileContent.getBytes());
             os.close();
             fc.close();
-        } catch (IOException e) {
-            // Handle exception, e.g., log the error or display an error message
+        } catch (Exception e) {
+            // Log the error or handle it in some way
             System.out.println("Error saving file: " + e.getMessage());
-        } catch (SecurityException e) {
-            // Handle exception, e.g., log the error or display an error message
-            System.out.println("Security error saving file: " + e.getMessage());
         }
     }
 
@@ -96,11 +52,64 @@ public class FileUtils {
             fw.write(fileContent);
             fw.close();
         } catch (IOException e) {
-            // Handle exception, e.g., log the error or display an error message
+            // Log the error or handle it in some way
             System.out.println("Error saving file: " + e.getMessage());
         } catch (SecurityException e) {
-            // Handle exception, e.g., log the error or display an error message
+            // Log the error or handle it in some way
             System.out.println("Security error saving file: " + e.getMessage());
+        }
+    }
+
+    public static String getFileContent(String fileName) {
+        if (isJ2ME()) {
+            return getFileContentJ2ME(fileName);
+        } else {
+            return getFileContentJVM(fileName);
+        }
+    }
+
+    private static String getFileContentJ2ME(String fileName) {
+        try {
+            FileConnection fc = (FileConnection) Connector.open("file:///" + fileName);
+            if (fc.exists()) {
+                int fileSize = (int) fc.fileSize();
+                byte[] fileContentBytes = new byte[fileSize];
+                InputStream is = fc.openInputStream();
+                is.read(fileContentBytes);
+                is.close();
+                fc.close();
+                return new String(fileContentBytes);
+            } else {
+                fc.close();
+                return null;
+            }
+        } catch (Exception e) {
+            // Log the error or handle it in some way
+            System.out.println("Error getting file content: " + e.getMessage());
+            return null;
+        }
+    }
+
+    private static String getFileContentJVM(String fileName) {
+        try {
+            File file = new File(fileName);
+            if (file.exists()) {
+                FileReader fr = new FileReader(file);
+                char[] fileContentChars = new char[(int) file.length()];
+                fr.read(fileContentChars);
+                fr.close();
+                return new String(fileContentChars);
+            } else {
+                return null;
+            }
+        } catch (IOException e) {
+            // Log the error or handle it in some way
+            System.out.println("Error getting file content: " + e.getMessage());
+            return null;
+        } catch (SecurityException e) {
+            // Log the error or handle it in some way
+            System.out.println("Security error getting file content: " + e.getMessage());
+            return null;
         }
     }
 }
