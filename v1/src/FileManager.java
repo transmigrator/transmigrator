@@ -1,18 +1,19 @@
-import javax.microedition.io.Connector;
-import javax.microedition.io.FileConnection;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Enumeration;
 import java.util.Vector;
+
+import javax.microedition.io.Connector;
+import javax.microedition.io.FileConnection;
 import javax.swing.JFileChooser;
+import javax.swing.filechooser.FileFilter;
 
 public class FileManager {
     private String downloadDir;
 
-    public FileManager() {
-        this.downloadDir = null;
+    public FileManager(String downloadDir) {
+        this.downloadDir = downloadDir;
     }
 
     public boolean isJ2ME() {
@@ -20,70 +21,9 @@ public class FileManager {
             Class.forName("javax.microedition.io.Connector");
             return true;
         } catch (ClassNotFoundException e) {
+            // Log the error or handle it in some way
+            System.out.println("Error loading javax.microedition.io.Connector: " + e.getMessage());
             return false;
-        }
-    }
-
-    public void setDownloadDir(String downloadDir) {
-        this.downloadDir = downloadDir;
-        if (!isJ2ME()) {
-            File dir = new File(downloadDir);
-            if (!dir.exists()) {
-                dir.mkdirs();
-            }
-        }
-    }
-
-    public String getDownloadDir() {
-        if (downloadDir == null) {
-            // Return a default directory or handle this situation in a more user-friendly way
-            return System.getProperty("java.io.tmpdir");
-        }
-        return downloadDir;
-    }
-
-    public void downloadFile(String fileName, String fileContent) {
-        if (isJ2ME()) {
-            downloadFileJ2ME(fileName, fileContent);
-        } else {
-            downloadFileJVM(fileName, fileContent);
-        }
-    }
-
-    private void downloadFileJ2ME(String fileName, String fileContent) {
-        try {
-            FileConnection fc = (FileConnection) Connector.open(downloadDir + fileName);
-            if (!fc.exists()) {
-                fc.create();
-            }
-            OutputStream os = fc.openOutputStream();
-            os.write(fileContent.getBytes());
-            os.close();
-            fc.close();
-        } catch (IOException e) {
-            // Handle exception, e.g., log the error or display an error message
-            System.out.println("Error downloading file: " + e.getMessage());
-        } catch (SecurityException e) {
-            // Handle exception, e.g., log the error or display an error message
-            System.out.println("Security error downloading file: " + e.getMessage());
-        }
-    }
-
-    private void downloadFileJVM(String fileName, String fileContent) {
-        try {
-            File file = new File(downloadDir + fileName);
-            if (!file.exists()) {
-                file.createNewFile();
-            }
-            FileWriter fw = new FileWriter(file);
-            fw.write(fileContent);
-            fw.close();
-        } catch (IOException e) {
-            // Handle exception, e.g., log the error or display an error message
-            System.out.println("Error downloading file: " + e.getMessage());
-        } catch (SecurityException e) {
-            // Handle exception, e.g., log the error or display an error message
-            System.out.println("Security error downloading file: " + e.getMessage());
         }
     }
 
@@ -122,6 +62,8 @@ public class FileManager {
                 return null;
             }
         } catch (Exception e) {
+            // Log the error or handle it in some way
+            System.out.println("Error selecting file for upload: " + e.getMessage());
             return null;
         }
     }
@@ -135,5 +77,55 @@ public class FileManager {
         } else {
             return null;
         }
+    }
+
+    public void downloadFile(String fileName, String fileContent) {
+        if (isJ2ME()) {
+            downloadFileJ2ME(fileName, fileContent);
+        } else {
+            downloadFileJVM(fileName, fileContent);
+        }
+    }
+
+    private void downloadFileJ2ME(String fileName, String fileContent) {
+        try {
+            FileConnection fc = (FileConnection) Connector.open(downloadDir + fileName);
+            if (!fc.exists()) {
+                fc.create();
+            }
+            OutputStream os = fc.openOutputStream();
+            os.write(fileContent.getBytes());
+            os.close();
+            fc.close();
+        } catch (Exception e) {
+            // Log the error or handle it in some way
+            System.out.println("Error downloading file: " + e.getMessage());
+        }
+    }
+
+    private void downloadFileJVM(String fileName, String fileContent) {
+        try {
+            File file = new File(downloadDir + fileName);
+            if (!file.exists()) {
+                file.createNewFile();
+            }
+            java.io.FileWriter fw = new java.io.FileWriter(file);
+            fw.write(fileContent);
+            fw.close();
+        } catch (IOException e) {
+            // Log the error or handle it in some way
+            System.out.println("Error downloading file: " + e.getMessage());
+        } catch (SecurityException e) {
+            // Log the error or handle it in some way
+            System.out.println("Security error downloading file: " + e.getMessage());
+        }
+    }
+
+    public String getDownloadDir() {
+        return downloadDir;
+    }
+
+    public void setDownloadDir(String downloadDir) {
+        this.downloadDir = downloadDir;
     }
 }
