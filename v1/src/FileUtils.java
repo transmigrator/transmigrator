@@ -1,108 +1,117 @@
-import java.io.File;
-import java.io.IOException;
-import javax.microedition.io.Connection;
 import javax.microedition.io.Connector;
-import javax.microedition.io.file.FileConnection;
+import javax.microedition.io.FileConnection;
+import javax.microedition.lcdui.Choice;
+import javax.microedition.lcdui.ChoiceGroup;
+import javax.microedition.lcdui.Command;
+import javax.microedition.lcdui.CommandListener;
+import javax.microedition.lcdui.Display;
+import javax.microedition.lcdui.Displayable;
+import javax.microedition.lcdui.Form;
+import javax.microedition.lcdui.List;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.Enumeration;
+import java.util.Vector;
+import javax.swing.JFileChooser;
 
 public class FileUtils {
-    private boolean isJ2ME;
-
-    public FileUtils() {
-        isJ2ME = System.getProperty("microedition.platform") != null || System.getProperty("java.vm.name").contains("J2ME");
+    public static String selectFile() {
+        String platform = System.getProperty("microedition.platform");
+        if (platform != null) {
+            // J2ME platform
+            return selectFileJ2ME();
+        } else {
+            // JVM platform
+            return selectFileJVM();
+        }
     }
 
-    public void downloadFile(String url, String filename, FileProgressListener listener) {
-        if (isJ2ME) {
-            // Use JSR-75 FileConnection API to download file
-            FileConnection fc = (FileConnection) Connector.open("file:///" + filename, Connector.READ_WRITE);
-            // ...
+    private static String selectFileJ2ME() {
+        // J2ME implementation
+        String selectedFile = null;
+        try {
+            // Create a file chooser UI component
+            FileChooser fileChooser = new FileChooser();
+            // Show the file chooser UI component
+            fileChooser.show();
+            // Get the selected file
+            selectedFile = fileChooser.getSelectedFile();
+        } catch (Exception e) {
+            // Handle exception
+        }
+        return selectedFile;
+    }
+
+    private static String selectFileJVM() {
+        // JVM implementation
+        JFileChooser fileChooser = new JFileChooser();
+        int returnValue = fileChooser.showOpenDialog(null);
+        if (returnValue == JFileChooser.APPROVE_OPTION) {
+            return fileChooser.getSelectedFile().getPath();
         } else {
-            // Use java.io package to download file
-            File file = new File(filename);
-            java.io.FileOutputStream fos = new java.io.FileOutputStream(file);
-            java.io.InputStream is = new java.net.URL(url).openStream();
-            byte[] buffer = new byte[1024];
-            int bytesRead;
-            while ((bytesRead = is.read(buffer)) != -1) {
-                fos.write(buffer, 0, bytesRead);
+            return null;
+        }
+    }
+
+    public static class FileChooser extends Form implements CommandListener {
+        private String selectedFile;
+        private ChoiceGroup cg;
+        private Command selectCommand;
+
+        public FileChooser() {
+            super("Select File");
+            // Create a list of files
+            String[] files = getFileList();
+            cg = new ChoiceGroup("Files", Choice.POPUP);
+            for (int i = 0; i < files.length; i++) {
+                cg.append(files[i], null);
             }
-            fos.close();
-            is.close();
+            append(cg);
+            // Create a command to select the file
+            selectCommand = new Command("Select", Command.OK, 1);
+            addCommand(selectCommand);
+            setCommandListener(this);
         }
-    }
 
-    public void uploadFile(String filename, String url) {
-        if (isJ2ME) {
-            // Use JSR-75 FileConnection API to upload file
-            FileConnection fc = (FileConnection) Connector.open("file:///" + filename, Connector.READ_WRITE);
-            // ...
-        } else {
-            // Use java.io package to upload file
-            File file = new File(filename);
-            java.io.FileInputStream fis = new java.io.FileInputStream(file);
-            java.io.OutputStream os = new java.net.URL(url).openConnection().getOutputStream();
-            byte[] buffer = new byte[1024];
-            int bytesRead;
-            while ((bytesRead = fis.read(buffer)) != -1) {
-                os.write(buffer, 0, bytesRead);
+        public void show() {
+            Display.getDisplay(null).setCurrent(this);
+        }
+
+        public String getSelectedFile() {
+            return selectedFile;
+        }
+
+        public void commandAction(Command c, Displayable d) {
+            if (c == selectCommand) {
+                // Get the selected file
+                selectedFile = cg.getString(cg.getSelectedIndex());
+                // Go back to the previous screen
+                Display.getDisplay(null).setCurrent(null);
             }
-            fis.close();
-            os.close();
         }
-    }
 
-    public List<String> listFiles() {
-        if (isJ2ME) {
-            // Use JSR-75 FileConnection API to list files
-            FileConnection fc = (FileConnection) Connector.open("file:///", Connector.READ_WRITE);
-            // ...
-        } else {
-            // Use java.io package to list files
-            File dir = new File(".");
-            String[] files = dir.list();
-            List<String> fileList = new ArrayList<String>();
-            for (String file : files) {
-                fileList.add(file);
+        private String[] getFileList() {
+            // Get a list of files from the device's file system
+            String[] files = null;
+            try {
+                FileConnection fc = (FileConnection) Connector.open("file:///");
+                if (fc.isDirectory()) {
+                    Enumeration fileEnum = fc.list();
+                    Vector fileVector = new Vector();
+                    while (fileEnum.hasMoreElements()) {
+                        String file = (String) fileEnum.nextElement();
+                        if (file.endsWith(".txt")) {
+                            fileVector.addElement(file);
+                        }
+                    }
+                    files = new String[fileVector.size()];
+                    fileVector.copyInto(files);
+                }
+                fc.close();
+            } catch (Exception e) {
+                // Handle exception
             }
-            return fileList;
-        }
-    }
-
-    public void deleteFile(String filename) {
-        if (isJ2ME) {
-            // Use JSR-75 FileConnection API to delete file
-            FileConnection fc = (FileConnection) Connector.open("file:///" + filename, Connector.WRITE);
-            // ...
-        } else {
-            // Use java.io package to delete file
-            File file = new File(filename);
-            file.delete();
-        }
-    }
-
-    public void createDirectory(String directoryName) {
-        if (isJ2ME) {
-            // Use JSR-75 FileConnection API to create directory
-            FileConnection fc = (FileConnection) Connector.open("file:///" + directoryName, Connector.WRITE);
-            // ...
-        } else {
-            // Use java.io package to create directory
-            File dir = new File(directoryName);
-            dir.mkdir();
-        }
-    }
-
-    public String selectFile() {
-        if (isJ2ME) {
-            // Use JSR-75 FileConnection API to select file
-            FileConnection fc = (FileConnection) Connector.open("file:///", Connector.READ_WRITE);
-            // ...
-        } else {
-            // Use java.io package to select file
-            // This is a bit tricky, as there's no direct equivalent to J2ME's FileConnection API
-            // You might want to use a library like JFileChooser or implement your own file chooser
-            // For now, let's just return a hardcoded file name
-            return "selected_file.txt";
+            return files;
         }
     }
 }
