@@ -1,77 +1,71 @@
 // FileManager.java
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.awt.FileDialog;
-import java.awt.Frame;
-import java.util.List;
-import java.util.ArrayList;
-import javafx.stage.Storage;
 
 public class FileManager {
-    private Storage storage;
+    private FileUtils fileUtils;
 
     public FileManager() {
-        storage = Storage.getStorage();
+        String environment = System.getProperty("java.vm.name");
+        if (environment.contains("J2ME")) {
+            fileUtils = new J2MEFileUtils();
+        } else {
+            fileUtils = new JVMFileUtils();
+        }
     }
 
     public void downloadFile(String url, String filename, FileProgressListener listener) {
-        try {
-            URL downloadUrl = new URL(url);
-            storage.save(filename, Files.readAllBytes(Paths.get(downloadUrl.toURI())));
-            listener.onComplete(new File(filename));
-        } catch (MalformedURLException e) {
-            System.err.println("Invalid URL: " + e.getMessage());
-        } catch (IOException e) {
-            System.err.println("Error downloading file: " + e.getMessage());
-        }
+        fileUtils.downloadFile(url, filename, listener);
     }
 
     public void uploadFile(String filename, String url) {
-        // For simplicity, we'll use the built-in Java HTTP client
-        try (java.net.HttpURLConnection connection = (java.net.HttpURLConnection) new URL(url).openConnection()) {
-            connection.setRequestMethod("PUT");
-            connection.setDoOutput(true);
-            connection.getOutputStream().write(storage.load(filename));
-            System.out.println("File uploaded successfully");
-        } catch (MalformedURLException e) {
-            System.err.println("Invalid URL: " + e.getMessage());
-        } catch (IOException e) {
-            System.err.println("Error uploading file: " + e.getMessage());
-        }
+        fileUtils.uploadFile(filename, url);
     }
 
     public List<String> listFiles() {
-        return storage.list();
+        return fileUtils.listFiles();
     }
 
     public void deleteFile(String filename) {
-        storage.delete(filename);
+        fileUtils.deleteFile(filename);
     }
 
     public void createDirectory(String directoryName) {
-        storage.createDirectory(directoryName);
+        fileUtils.createDirectory(directoryName);
     }
 
     public String selectFile() {
-        // Create a file dialog to select a file
-        FileDialog fileDialog = new FileDialog(new Frame(), "Select File", FileDialog.LOAD);
-        fileDialog.setVisible(true);
-        return fileDialog.getFile();
+        return fileUtils.selectFile();
     }
+}
 
-    public interface FileProgressListener {
-        void onProgress(int bytesTransferred);
-        void onComplete(File transferredFile);
-    }
+// FileUtils.java
 
-    public interface UploadProgressListener {
-        void onProgress(int bytesUploaded);
-        void onComplete(File uploadedFile);
-    }
+public interface FileUtils {
+    void downloadFile(String url, String filename, FileProgressListener listener);
+    void uploadFile(String filename, String url);
+    List<String> listFiles();
+    void deleteFile(String filename);
+    void createDirectory(String directoryName);
+    String selectFile();
+}
+
+// J2MEFileUtils.java
+
+import javax.microedition.io.Connection;
+import javax.microedition.io.Connector;
+import javax.microedition.io.file.FileConnection;
+
+public class J2MEFileUtils implements FileUtils {
+    // Implementation of FileUtils for Java ME environment
+}
+
+// JVMFileUtils.java
+
+import java.io.File;
+import java.io.IOException;
+
+public class JVMFileUtils implements FileUtils {
+    // Implementation of FileUtils for JVM environment
 }
