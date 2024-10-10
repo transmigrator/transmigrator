@@ -1,3 +1,8 @@
+import javafx.scene.control.TabPane;
+import javafx.scene.control.TextField;
+import javafx.scene.input.KeyCode;
+import javafx.scene.layout.BorderPane;
+
 public class Browser {
     private TabPane tabPane;
     private AddressBar addressBar;
@@ -51,6 +56,4 @@ public class Browser {
         // Add the tab pane to the border pane
         layout.setCenter(tabPane);
     }
-
-    // Other methods for handling navigation and web page loading
 }
