@@ -1,11 +1,20 @@
 import javax.microedition.io.Connector;
 import javax.microedition.io.FileConnection;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.util.Enumeration;
+import java.util.Vector;
 
 public class FileUtils {
-    public static String selectFile() {
-        return FileChooser.selectFile();
+    public static boolean isJ2ME() {
+        try {
+            Class.forName("javax.microedition.io.Connector");
+            return true;
+        } catch (ClassNotFoundException e) {
+            return false;
+        }
     }
 
     public static String selectFileJ2ME() {
@@ -16,13 +25,20 @@ public class FileUtils {
                 Vector fileVector = new Vector();
                 while (fileEnum.hasMoreElements()) {
                     String file = (String) fileEnum.nextElement();
-                    if (file.endsWith(".txt")) {
-                        fileVector.addElement(file);
-                    }
+                    fileVector.addElement(file);
                 }
-                String selectedFile = (String) fileVector.elementAt(0);
-                fc.close();
-                return selectedFile;
+                // Create a file chooser to select a file
+                FileChooser fileChooser = new FileChooser();
+                fileChooser.setFiles(fileVector);
+                int selectedIndex = fileChooser.showFileChooser();
+                if (selectedIndex != -1) {
+                    String selectedFile = (String) fileVector.elementAt(selectedIndex);
+                    fc.close();
+                    return selectedFile;
+                } else {
+                    fc.close();
+                    return null;
+                }
             } else {
                 fc.close();
                 return null;
@@ -33,8 +49,14 @@ public class FileUtils {
     }
 
     public static String selectFileJVM() {
-        // This method is no longer needed, as FileChooser handles JVM file selection
-        return FileChooser.selectFile();
+        JFileChooser fileChooser = new JFileChooser();
+        int returnValue = fileChooser.showOpenDialog(null);
+        if (returnValue == JFileChooser.APPROVE_OPTION) {
+            File selectedFile = fileChooser.getSelectedFile();
+            return selectedFile.getAbsolutePath();
+        } else {
+            return null;
+        }
     }
 
     public static void saveFile(String fileName, String fileContent) {
@@ -43,10 +65,6 @@ public class FileUtils {
         } else {
             saveFileJVM(fileName, fileContent);
         }
-    }
-
-    private static boolean isJ2ME() {
-        return System.getProperty("microedition.configuration") != null;
     }
 
     private static void saveFileJ2ME(String fileName, String fileContent) {
@@ -59,8 +77,12 @@ public class FileUtils {
             os.write(fileContent.getBytes());
             os.close();
             fc.close();
-        } catch (Exception e) {
-            // Handle exception
+        } catch (IOException e) {
+            // Handle exception, e.g., log the error or display an error message
+            System.out.println("Error saving file: " + e.getMessage());
+        } catch (SecurityException e) {
+            // Handle exception, e.g., log the error or display an error message
+            System.out.println("Security error saving file: " + e.getMessage());
         }
     }
 
@@ -74,7 +96,11 @@ public class FileUtils {
             fw.write(fileContent);
             fw.close();
         } catch (IOException e) {
-            // Handle exception
+            // Handle exception, e.g., log the error or display an error message
+            System.out.println("Error saving file: " + e.getMessage());
+        } catch (SecurityException e) {
+            // Handle exception, e.g., log the error or display an error message
+            System.out.println("Security error saving file: " + e.getMessage());
         }
     }
 }
