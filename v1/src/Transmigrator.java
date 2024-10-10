@@ -10,13 +10,25 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
+import javafx.application.Application;
+import javafx.stage.Stage;
+
 public class Transmigrator extends Application {
-
-    private ProxyMeshConfig proxyMeshConfig;
     private ProxyMesh proxyMesh;
+    private ProxyMeshConfig proxyMeshConfig;
 
-    static {
-        SVGImageLoaderFactory.install();
+    @Override
+    public void start(Stage primaryStage) {
+        displayLoadingScreen(primaryStage);
+
+        // Pause for a few seconds to display the loading screen
+        PauseTransition pause = new PauseTransition(Duration.seconds(3));
+        pause.setOnFinished(event -> {
+            createProxyMeshConfig(primaryStage);
+            createProxyMesh();
+            createGUI(primaryStage);
+        });
+        pause.play();
     }
 
     private void displayLoadingScreen(Stage primaryStage) {
@@ -39,26 +51,12 @@ public class Transmigrator extends Application {
         primaryStage.setScene(scene);
     }
 
-    @Override
-    public void start(Stage primaryStage) {
-        displayLoadingScreen(primaryStage);
-
-        // Pause for a few seconds to display the loading screen
-        PauseTransition pause = new PauseTransition(Duration.seconds(3));
-        pause.setOnFinished(event -> {
-            createProxyMeshConfig(primaryStage);
-            createProxyMesh();
-            createGUI(primaryStage);
-        });
-        pause.play();
-    }
-
     private void createProxyMeshConfig(Stage primaryStage) {
         // Create a FileManager instance
         FileManager fileManager = new FileManager(new File(System.getProperty("user.home")));
 
         // Use the FileManager to select the proxy list file
-        File proxyListFile = fileManager.selectFile();
+        File proxyListFile = new File(fileManager.selectFileForUpload());
 
         if (proxyListFile != null) {
             try {
@@ -137,40 +135,17 @@ public class Transmigrator extends Application {
             public void onError(String errorMessage) {
                 System.err.println("Error: " + errorMessage);
             }
-        }, tabPane);
+        });
 
         // Create a browser instance
         Browser browser = new Browser(tabPane, addressBar);
+
+        // Create the GUI
         browser.createGUI(layout);
 
-        // Create a scene and set it to the primary stage
-        Scene scene = new Scene(layout, 100, 100);
-
-        // Add error handling for loading the stylesheet
-        try {
-            scene.getStylesheets().add(getClass().getResource("/styles.css").toExternalForm());
-        } catch (Exception e) {
-            System.err.println("Error loading stylesheet: " + e.getMessage());
-        }
-
-        // Set the scene to the primary stage
+        // Set the layout as the content of the stage
+        Scene scene = new Scene(layout);
         primaryStage.setScene(scene);
-
-        // Make the scene resizeable
-        primaryStage.setMaximized(true);
-        primaryStage.setMinWidth(400);
-        primaryStage.setMinHeight(300);
-
-        // Show the primary stage
-        primaryStage.show();
-
-        // Make the GUI responsive
-        scene.widthProperty().addListener((observable, oldValue, newValue) -> {
-            layout.setPrefWidth(newValue.doubleValue());
-        });
-        scene.heightProperty().addListener((observable, oldValue, newValue) -> {
-            layout.setPrefHeight(newValue.doubleValue());
-        });
     }
 
     public static void main(String[] args) {
