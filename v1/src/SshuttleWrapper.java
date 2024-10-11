@@ -4,9 +4,9 @@ import jpype.PythonException;
 public class SshuttleWrapper {
     private PythonObject packetHandler;
     private PythonObject proxyMesh;
-    private PythonObject K1; // key exchange key
-    private PythonObject K2; // digital signature/auth key
-    private PythonObject K3; // encryption key
+    private PythonObject K1; // key exchange key (client-input)
+    private PythonObject K2; // digital signature/auth key (client-input)
+    private PythonObject K3; // encryption key (client-input)
     private PythonObject K4; // key exchange key (server-output)
     private PythonObject K5; // digital signature/auth key (server-output)
     private PythonObject K6; // decryption key (server-output)
@@ -28,8 +28,10 @@ public class SshuttleWrapper {
             // Store the keypair for later use
             K1 = keypair.__getattr__("private_key"); // key exchange key (client-input)
             K2 = keypair.__getattr__("private_key"); // digital signature/auth key (client-input)
+            K3 = keypair.__getattr__("private_key"); // encryption key (client-input)
             K4 = keypair.__getattr__("public_key"); // key exchange key (server-output)
             K5 = keypair.__getattr__("public_key"); // digital signature/auth key (server-output)
+            K6 = keypair.__getattr__("public_key"); // decryption key (server-output)
             
             return keypair;
         } catch (PythonException e) {
