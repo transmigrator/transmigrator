@@ -11,45 +11,47 @@ class KeyManager:
         self.server_output_keys = None
 
     def generate_client_input_keys(self):
-        # Generate new client-input keys (K1, K2, K3)
-        # K1: ECDH with secp521r1 curve
+        # Generate fresh client-input keys (K1, K2, K3) for a single use
         private_key = ec.generate_private_key(ec.SECP521R1())
         K1 = private_key.public_key().public_bytes(
             encoding=serialization.Encoding.X962,
             format=serialization.PublicFormat.SubjectPublicKeyInfo
         )
-        # K2: ECDSA with SHA-384 hash
         K2 = private_key.sign(b"client_input", ec.ECDSA(hashlib.sha384()))
-        # K3: ChaCha20-Poly1305
-        K3 = ChaCha20Poly1305.generate_key()
+        K3 = os.urandom(32)
         self.client_input_keys = (K1, K2, K3)
         return self.client_input_keys
 
     def generate_server_output_keys(self):
-        # Generate new server-output keys (K4, K5, K6)
-        # K4: ECDH with secp521r1 curve
+        # Generate fresh server-output keys (K4, K5, K6) for a single use
         private_key = ec.generate_private_key(ec.SECP521R1())
         K4 = private_key.public_key().public_bytes(
             encoding=serialization.Encoding.X962,
             format=serialization.PublicFormat.SubjectPublicKeyInfo
         )
-        # K5: ECDSA with SHA-384 hash
         K5 = private_key.sign(b"server_output", ec.ECDSA(hashlib.sha384()))
-        # K6: ChaCha20-Poly1305
-        K6 = ChaCha20Poly1305.generate_key()
+        K6 = os.urandom(32)
         self.server_output_keys = (K4, K5, K6)
         return self.server_output_keys
 
     def get_client_input_keys(self):
-        return self.client_input_keys
+        if self.client_input_keys is None:
+            self.generate_client_input_keys()
+        keys = self.client_input_keys
+        self.client_input_keys = None  # Ensure single-use
+        return keys
 
     def get_server_output_keys(self):
-        return self.server_output_keys
+        if self.server_output_keys is None:
+            self.generate_server_output_keys()
+        keys = self.server_output_keys
+        self.server_output_keys = None  # Ensure single-use
+        return keys
 
 def main():
     key_manager = KeyManager()
-    client_input_keys = key_manager.generate_client_input_keys()
-    server_output_keys = key_manager.generate_server_output_keys()
+    client_input_keys = key_manager.get_client_input_keys()
+    server_output_keys = key_manager.get_server_output_keys()
 
     print("Client Input Keys:")
     print(client_input_keys)
