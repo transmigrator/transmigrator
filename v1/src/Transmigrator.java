@@ -10,6 +10,8 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.bouncycastle.jsse.provider.BouncyCastleJsseProvider;
+
 import javafx.application.Application;
 import javafx.stage.Stage;
 
@@ -80,8 +82,11 @@ public class Transmigrator extends Application {
     }
 
     private void createProxyMesh() {
-        // Create ProxyMesh object
-        proxyMesh = new ProxyMesh();
+        // Create a BouncyCastleJsseProvider instance
+        BouncyCastleJsseProvider provider = new BouncyCastleJsseProvider();
+
+        // Create ProxyMesh object with the BouncyCastleJsseProvider instance
+        proxyMesh = new ProxyMesh(provider);
     }
 
     private void createGUI(Stage primaryStage) {
