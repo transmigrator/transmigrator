@@ -93,9 +93,9 @@ public class FileManager {
             if (!fc.exists()) {
                 fc.create();
             }
-            OutputStream os = fc.openOutputStream();
-            os.write(fileContent.getBytes());
-            os.close();
+            try (OutputStream os = fc.openOutputStream()) {
+                os.write(fileContent.getBytes());
+            }
             fc.close();
         } catch (Exception e) {
             // Log the error or handle it in some way
@@ -109,9 +109,9 @@ public class FileManager {
             if (!file.exists()) {
                 file.createNewFile();
             }
-            java.io.FileWriter fw = new java.io.FileWriter(file);
-            fw.write(fileContent);
-            fw.close();
+            try (java.io.FileWriter fw = new java.io.FileWriter(file)) {
+                fw.write(fileContent);
+            }
         } catch (IOException e) {
             // Log the error or handle it in some way
             System.out.println("Error downloading file: " + e.getMessage());
