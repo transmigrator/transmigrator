@@ -1,22 +1,12 @@
 public class Packet {
-    private byte[] data;
-    private int sequenceNumber;
-    private PythonObject keyExchangeKeyClientInput;
-    private PythonObject digitalSignatureAuthKeyClientInput;
-    private PythonObject encryptionKeyClientInput;
-    private PythonObject keyExchangeKeyServerOutput;
-    private PythonObject digitalSignatureAuthKeyServerOutput;
-    private PythonObject decryptionKeyServerOutput;
+    private final byte[] data;
+    private final int sequenceNumber;
+    private final byte[] authenticationTag;
 
-    public Packet(byte[] data, int sequenceNumber, PythonObject keyExchangeKeyClientInput, PythonObject digitalSignatureAuthKeyClientInput, PythonObject encryptionKeyClientInput, PythonObject keyExchangeKeyServerOutput, PythonObject digitalSignatureAuthKeyServerOutput, PythonObject decryptionKeyServerOutput) {
+    public Packet(byte[] data, int sequenceNumber, byte[] authenticationTag) {
         this.data = data;
         this.sequenceNumber = sequenceNumber;
-        this.keyExchangeKeyClientInput = keyExchangeKeyClientInput;
-        this.digitalSignatureAuthKeyClientInput = digitalSignatureAuthKeyClientInput;
-        this.encryptionKeyClientInput = encryptionKeyClientInput;
-        this.keyExchangeKeyServerOutput = keyExchangeKeyServerOutput;
-        this.digitalSignatureAuthKeyServerOutput = digitalSignatureAuthKeyServerOutput;
-        this.decryptionKeyServerOutput = decryptionKeyServerOutput;
+        this.authenticationTag = authenticationTag;
     }
 
     public byte[] getData() {
@@ -27,27 +17,16 @@ public class Packet {
         return sequenceNumber;
     }
 
-    public PythonObject getKeyExchangeKeyClientInput() {
-        return keyExchangeKeyClientInput;
+    public byte[] getAuthenticationTag() {
+        return authenticationTag;
     }
 
-    public PythonObject getDigitalSignatureAuthKeyClientInput() {
-        return digitalSignatureAuthKeyClientInput;
-    }
-
-    public PythonObject getEncryptionKeyClientInput() {
-        return encryptionKeyClientInput;
-    }
-
-    public PythonObject getKeyExchangeKeyServerOutput() {
-        return keyExchangeKeyServerOutput;
-    }
-
-    public PythonObject getDigitalSignatureAuthKeyServerOutput() {
-        return digitalSignatureAuthKeyServerOutput;
-    }
-
-    public PythonObject getDecryptionKeyServerOutput() {
-        return decryptionKeyServerOutput;
+    @Override
+    public String toString() {
+        return "Packet{" +
+                "data=" + java.util.Arrays.toString(data) +
+                ", sequenceNumber=" + sequenceNumber +
+                ", authenticationTag=" + java.util.Arrays.toString(authenticationTag) +
+                '}';
     }
 }
