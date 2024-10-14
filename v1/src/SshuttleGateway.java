@@ -34,21 +34,26 @@ public class SshuttleGateway {
     }
 
     public Socket connect(String host, int port) throws IOException {
-        // Create a socket that uses the sshuttle proxy server
-        SocketAddress proxyAddress = new InetSocketAddress(sshuttleProxyServer, sshuttleProxyPort);
-        Proxy proxy = new Proxy(Proxy.Type.SOCKS, proxyAddress);
-        Socket socket = new Socket(proxy);
+        try {
+            // Create a socket that uses the sshuttle proxy server
+            SocketAddress proxyAddress = new InetSocketAddress(sshuttleProxyServer, sshuttleProxyPort);
+            Proxy proxy = new Proxy(Proxy.Type.SOCKS, proxyAddress);
+            Socket socket = new Socket(proxy);
 
-        // Connect to the target host and port through the sshuttle proxy server
-        socket.connect(new InetSocketAddress(host, port));
+            // Connect to the target host and port through the sshuttle proxy server
+            socket.connect(new InetSocketAddress(host, port));
 
-        // Upgrade the socket to an SSL socket
-        SSLSocketFactory sslSocketFactory = (SSLSocketFactory) SSLSocketFactory.getDefault();
-        SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(socket, host, port, true);
+            // Upgrade the socket to an SSL socket
+            SSLSocketFactory sslSocketFactory = (SSLSocketFactory) SSLSocketFactory.getDefault();
+            SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(socket, host, port, true);
 
-        // Start the SSL handshake
-        sslSocket.startHandshake();
+            // Start the SSL handshake
+            sslSocket.startHandshake();
 
-        return sslSocket;
+            return sslSocket;
+        } catch (IOException e) {
+            // Handle the exception and throw a meaningful error message
+            throw new IOException("Failed to establish sshuttle tunnel: " + e.getMessage());
+        }
     }
 }
