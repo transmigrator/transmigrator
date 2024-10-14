@@ -16,58 +16,98 @@ public class KeyManager {
     private static final String ENCRYPTION_ALGORITHM = "ChaCha20-Poly1305";
 
     public KeySet generateClientInputKeys() throws Exception {
-        KeyPair k1 = generateKeyPair(); // Key exchange
-        KeyPair k2 = generateKeyPair(); // Digital signature/auth
-        KeyPair k3 = generateKeyPair(); // Encryption
-        return new KeySet(k1, k2, k3);
+        try {
+            KeyPair k1 = generateKeyPair(); // Key exchange
+            KeyPair k2 = generateKeyPair(); // Digital signature/auth
+            KeyPair k3 = generateKeyPair(); // Encryption
+            return new KeySet(k1, k2, k3);
+        } catch (Exception e) {
+            // Handle the exception and throw a meaningful error message
+            throw new Exception("Failed to generate client input keys: " + e.getMessage());
+        }
     }
 
     public KeySet generateServerOutputKeys() throws Exception {
-        KeyPair k4 = generateKeyPair(); // Key exchange
-        KeyPair k5 = generateKeyPair(); // Digital signature/auth
-        KeyPair k6 = generateKeyPair(); // Decryption
-        return new KeySet(k4, k5, k6);
+        try {
+            KeyPair k4 = generateKeyPair(); // Key exchange
+            KeyPair k5 = generateKeyPair(); // Digital signature/auth
+            KeyPair k6 = generateKeyPair(); // Decryption
+            return new KeySet(k4, k5, k6);
+        } catch (Exception e) {
+            // Handle the exception and throw a meaningful error message
+            throw new Exception("Failed to generate server output keys: " + e.getMessage());
+        }
     }
 
     private KeyPair generateKeyPair() throws Exception {
-        KeyPairGenerator kpg = KeyPairGenerator.getInstance("EC");
-        ECGenParameterSpec ecGenSpec = new ECGenParameterSpec(CURVE_NAME);
-        kpg.initialize(ecGenSpec, new SecureRandom());
-        return kpg.generateKeyPair();
+        try {
+            KeyPairGenerator kpg = KeyPairGenerator.getInstance("EC");
+            ECGenParameterSpec ecGenSpec = new ECGenParameterSpec(CURVE_NAME);
+            kpg.initialize(ecGenSpec, new SecureRandom());
+            return kpg.generateKeyPair();
+        } catch (Exception e) {
+            // Handle the exception and throw a meaningful error message
+            throw new Exception("Failed to generate key pair: " + e.getMessage());
+        }
     }
 
     public byte[] generateSharedSecret(PrivateKey privateKey, PublicKey publicKey) throws Exception {
-        KeyAgreement ka = KeyAgreement.getInstance("ECDH");
-        ka.init(privateKey);
-        ka.doPhase(publicKey, true);
-        return ka.generateSecret();
+        try {
+            KeyAgreement ka = KeyAgreement.getInstance("ECDH");
+            ka.init(privateKey);
+            ka.doPhase(publicKey, true);
+            return ka.generateSecret();
+        } catch (Exception e) {
+            // Handle the exception and throw a meaningful error message
+            throw new Exception("Failed to generate shared secret: " + e.getMessage());
+        }
     }
 
     public byte[] encrypt(byte[] plaintext, byte[] sharedSecret) throws Exception {
-        Cipher cipher = Cipher.getInstance(ENCRYPTION_ALGORITHM);
-        SecretKeySpec secretKeySpec = new SecretKeySpec(sharedSecret, ENCRYPTION_ALGORITHM);
-        cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec);
-        return cipher.doFinal(plaintext);
+        try {
+            Cipher cipher = Cipher.getInstance(ENCRYPTION_ALGORITHM);
+            SecretKeySpec secretKeySpec = new SecretKeySpec(sharedSecret, ENCRYPTION_ALGORITHM);
+            cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec);
+            return cipher.doFinal(plaintext);
+        } catch (Exception e) {
+            // Handle the exception and throw a meaningful error message
+            throw new Exception("Failed to encrypt data: " + e.getMessage());
+        }
     }
 
     public byte[] decrypt(byte[] ciphertext, byte[] sharedSecret) throws Exception {
-        Cipher cipher = Cipher.getInstance(ENCRYPTION_ALGORITHM);
-        SecretKeySpec secretKeySpec = new SecretKeySpec(sharedSecret, ENCRYPTION_ALGORITHM);
-        cipher.init(Cipher.DECRYPT_MODE, secretKeySpec);
-        return cipher.doFinal(ciphertext);
+        try {
+            Cipher cipher = Cipher.getInstance(ENCRYPTION_ALGORITHM);
+            SecretKeySpec secretKeySpec = new SecretKeySpec(sharedSecret, ENCRYPTION_ALGORITHM);
+            cipher.init(Cipher.DECRYPT_MODE, secretKeySpec);
+            return cipher.doFinal(ciphertext);
+        } catch (Exception e) {
+            // Handle the exception and throw a meaningful error message
+            throw new Exception("Failed to decrypt data: " + e.getMessage());
+        }
     }
 
     public byte[] sign(byte[] data, PrivateKey privateKey) throws Exception {
-        Mac mac = Mac.getInstance(HASH_ALGORITHM);
-        mac.init(privateKey);
-        return mac.doFinal(data);
+        try {
+            Mac mac = Mac.getInstance(HASH_ALGORITHM);
+            mac.init(privateKey);
+            return mac.doFinal(data);
+        } catch (Exception e) {
+            // Handle the exception and throw a meaningful error message
+            throw new Exception("Failed to sign data: " + e.getMessage());
+        }
     }
 
     public boolean verify(byte[] data, byte[] signature, PublicKey publicKey) throws Exception {
-        Mac mac = Mac.getInstance(HASH_ALGORITHM);
-        mac.init(publicKey);
-        byte[] expectedSignature = mac.doFinal(data);
-        return java.util.Arrays.equals(signature, expectedSignature);
+        try {
+            Mac mac = Mac.getInstance(HASH_ALGORITHM);
+            mac.init(publicKey);
+            byte[] expectedSignature = mac.doFinal(data);
+            return java.util.Arrays.equals(signature, expectedSignature);
+        } catch (Exception e) {
+            // Handle the exception and throw a meaningful error message
+            throw new Exception("Failed to verify signature: " + e.getMessage());
+        }
     }
 
     public static class KeySet {
