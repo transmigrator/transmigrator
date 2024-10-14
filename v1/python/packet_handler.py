@@ -38,7 +38,7 @@ def verify_packet_header(header, packet):
         raise ValueError('Invalid checksum')
     return packet_id
 
-def packetize_data(data, symmetric_key, max_packet_size=1024):
+def packetize_data(data, symmetric_key, max_packet_size=1280):
     # Split the data into packets of max_packet_size bytes each
     packets = []
     for i in range(0, len(data), max_packet_size):
