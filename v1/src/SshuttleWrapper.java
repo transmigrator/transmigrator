@@ -1,5 +1,3 @@
-import jpype.PythonObject;
-import jpype.PythonInterpreter;
 import java.io.IOException;
 import java.security.KeyPair;
 import java.security.PrivateKey;
