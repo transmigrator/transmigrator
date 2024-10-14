@@ -1,50 +1,40 @@
 import random
 
-class Proxy:
-    def __init__(self, ip, port):
-        self.ip = ip
-        self.port = port
-
-class ProxyChain:
-    def __init__(self, proxies):
-        self.proxies = proxies
-
-    def get_proxies(self):
-        return self.proxies
 
 class ProxyMesh:
     def __init__(self):
-        self.proxy_chains = []
+        self.proxyChains = []
 
-    def create_proxy_chain(self, proxy_list):
+    def createProxyChain(self, proxyList):
         # Create a new ProxyChain with the given proxy list
-        proxies = [Proxy(proxy[0], proxy[1]) for proxy in proxy_list]
-        proxy_chain = ProxyChain(proxies)
-        self.proxy_chains.append(proxy_chain)
+        proxyChain = proxyList
+        self.proxyChains.append(proxyChain)
 
-    def get_proxy_chain(self):
+    def getProxyChain(self):
         # Return a random ProxyChain from the list
-        return random.choice(self.proxy_chains)
+        return random.choice(self.proxyChains)
 
-    def add_proxy_chain(self, proxy_chain):
-        self.proxy_chains.append(proxy_chain)
+    def addProxyChain(self, proxyChain):
+        self.proxyChains.append(proxyChain)
 
-    def remove_proxy_chain(self, proxy_chain):
-        self.proxy_chains.remove(proxy_chain)
+    def removeProxyChain(self, proxyChain):
+        self.proxyChains.remove(proxyChain)
 
-def load_proxies_from_file(filename):
-    proxy_list = []
+
+def loadProxiesFromFiles(filename):
+    proxyList = []
     with open(filename, 'r') as f:
         for line in f:
             ip, port = line.strip().split(':')
-            proxy_list.append((ip, int(port)))
-    return proxy_list
+            proxyList.append((ip, int(port)))
+    return proxyList
 
-def create_proxy_mesh(filename):
-    proxy_mesh = ProxyMesh()
-    proxy_list = load_proxies_from_file(filename)
+
+def createProxyMeshInstance(filename):
+    proxyMesh = ProxyMesh()
+    proxyList = loadProxiesFromFiles(filename)
     # Create multiple ProxyChains with 3 proxies each
-    for i in range(0, len(proxy_list), 3):
-        proxy_chain_proxies = proxy_list[i:i+3]
-        proxy_mesh.create_proxy_chain(proxy_chain_proxies)
-    return proxy_mesh
+    for i in range(0, len(proxyList), 3):
+        proxyChainProxies = proxyList[i:i+3]
+        proxyMesh.createProxyChain(proxyChainProxies)
+    return proxyMesh
