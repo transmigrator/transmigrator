@@ -1,83 +1,65 @@
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
+import java.security.KeyPair;
 import java.util.ArrayList;
 import java.util.List;
 
 public class Segmentation {
-    private static final int MAX_PACKET_SIZE = 1280;
-    private SshuttleWrapper sshuttleWrapper;
+    private KeyManager keyManager;
+    private int packetSize;
 
-    public Segmentation(SshuttleWrapper sshuttleWrapper) {
-        this.sshuttleWrapper = sshuttleWrapper;
+    public Segmentation(KeyManager keyManager) {
+        this.keyManager = keyManager;
+        this.packetSize = 1280;
     }
 
-    public List<Packet> segmentData(byte[] data) {
-        List<Packet> packets = new ArrayList<>();
-        int sequenceNumber = 0;
+    public List<byte[]> segmentData(byte[] data) throws Exception {
+        List<byte[]> packets = new ArrayList<>();
 
-        for (int i = 0; i < data.length; i += MAX_PACKET_SIZE) {
-            int packetSize = Math.min(MAX_PACKET_SIZE, data.length - i);
-            byte[] packetData = new byte[packetSize];
-            System.arraycopy(data, i, packetData, 0, packetSize);
+        // Use client-input keys (K1, K2, K3) for sending data to server
+        KeyPair clientInputKeyPair = keyManager.generateClientInputKeys();
+        PrivateKey clientInputPrivateKey = clientInputKeyPair.getPrivate();
+        PublicKey clientInputPublicKey = clientInputKeyPair.getPublic();
+        KeyPair k1 = keyManager.getK1();
+        KeyPair k2 = keyManager.getK2();
+        KeyPair k3 = keyManager.getK3();
 
-            byte[] digitalSignatureAuthKeyServerOutput = sshuttleWrapper.getServerOutputKeyK5();
-            byte[] keyExchangeKeyServerOutput = sshuttleWrapper.getServerOutputKeyK4();
+        // Segment data into packets of packetSize bytes
+        for (int i = 0; i < data.length; i += packetSize) {
+            int packetLength = Math.min(packetSize, data.length - i);
+            byte[] packet = new byte[packetLength];
+            System.arraycopy(data, i, packet, 0, packetLength);
 
-            Packet packet = new Packet(packetData, sequenceNumber, null, null, null, keyExchangeKeyServerOutput, digitalSignatureAuthKeyServerOutput, sshuttleWrapper.getServerOutputKeyK6());
-            packets.add(packet);
+            // Encrypt packet using K3
+            byte[] encryptedPacket = keyManager.encrypt(packet, k3.getPrivate().getEncoded());
 
-            sequenceNumber++;
+            packets.add(encryptedPacket);
         }
 
         return packets;
     }
 
-    public byte[] consolidatePackets(List<Packet> packets) {
-        if (packets == null || packets.isEmpty()) {
-            throw new RuntimeException("No packets to consolidate");
+    public byte[] consolidatePackets(List<byte[]> packets) throws Exception {
+        byte[] consolidatedData = new byte[0];
+
+        // Use server-output keys (K4, K5, K6) for receiving data from server
+        KeyPair serverOutputKeyPair = keyManager.generateServerOutputKeys();
+        PrivateKey serverOutputPrivateKey = serverOutputKeyPair.getPrivate();
+        PublicKey serverOutputPublicKey = serverOutputKeyPair.getPublic();
+        KeyPair k4 = keyManager.getK4();
+        KeyPair k5 = keyManager.getK5();
+        KeyPair k6 = keyManager.getK6();
+
+        // Consolidate packets into a single byte array
+        for (byte[] packet : packets) {
+            // Decrypt packet using K6
+            byte[] decryptedPacket = keyManager.decrypt(packet, k6.getPrivate().getEncoded());
+
+            // Append decrypted packet to consolidated data
+            byte[] newConsolidatedData = new byte[consolidatedData.length + decryptedPacket.length];
+            System.arraycopy(consolidatedData, 0, newConsolidatedData, 0, consolidatedData.length);
+            System.arraycopy(decryptedPacket, 0, newConsolidatedData, consolidatedData.length, decryptedPacket.length);
+            consolidatedData = newConsolidatedData;
         }
 
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        int expectedSequenceNumber = 0;
-
-        for (Packet packet : packets) {
-            if (packet == null) {
-                throw new RuntimeException("Null packet encountered");
-            }
-
-            if (packet.getSequenceNumber() < 0) {
-                throw new RuntimeException("Invalid sequence number");
-            }
-
-            if (packet.getData() == null || packet.getData().length == 0) {
-                throw new RuntimeException("Packet data is empty");
-            }
-
-            if (packet.getDigitalSignatureAuthKeyServerOutput() == null || packet.getDigitalSignatureAuthKeyServerOutput().length == 0) {
-                throw new RuntimeException("Packet digital signature authentication key is empty");
-            }
-
-            if (packet.getKeyExchangeKeyServerOutput() == null || packet.getKeyExchangeKeyServerOutput().length == 0) {
-                throw new RuntimeException("Packet key exchange key is empty");
-            }
-
-            if (!sshuttleWrapper.verify(packet.getData(), packet.getDigitalSignatureAuthKeyServerOutput(), packet.getKeyExchangeKeyServerOutput())) {
-                throw new RuntimeException("Packet signature verification failed");
-            }
-
-            if (packet.getSequenceNumber() != expectedSequenceNumber) {
-                throw new RuntimeException("Missing or corrupted packet");
-            }
-
-            try {
-                bos.write(packet.getData());
-            } catch (IOException e) {
-                throw new RuntimeException("Error writing packet data to output stream", e);
-            }
-
-            expectedSequenceNumber++;
-        }
-
-        return bos.toByteArray();
+        return consolidatedData;
     }
 }
