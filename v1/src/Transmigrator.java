@@ -158,7 +158,6 @@ public class Transmigrator extends Application {
     }
 
     public static void main(String[] args) {
-        System.setProperty("java.system.class.loader", Transmigrator.class.getName());
-        launch(args);
+        launch(Transmigrator.class, args);
     }
 }
