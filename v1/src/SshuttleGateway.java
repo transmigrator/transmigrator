@@ -1,3 +1,5 @@
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.jsse.provider.BouncyCastleJsseProvider;
 import org.xbill.DNS.*;
 
 import java.io.IOException;
@@ -43,8 +45,8 @@ public class SshuttleGateway {
             // Connect to the target host and port through the sshuttle proxy server
             socket.connect(new InetSocketAddress(host, port));
 
-            // Upgrade the socket to an SSL socket
-            SSLSocketFactory sslSocketFactory = (SSLSocketFactory) SSLSocketFactory.getDefault();
+            // Upgrade the socket to an SSL socket using Bouncy Castle
+            SSLSocketFactory sslSocketFactory = (SSLSocketFactory) SSLSocketFactory.getInstance("TLS", new BouncyCastleJsseProvider());
             SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(socket, host, port, true);
 
             // Start the SSL handshake
