@@ -1,3 +1,5 @@
+import jpype.PythonObject;
+import jpype.PythonInterpreter;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.jsse.provider.BouncyCastleJsseProvider;
 import org.xbill.DNS.*;
@@ -36,26 +38,30 @@ public class SshuttleGateway {
     }
 
     public Socket connect(String host, int port) throws IOException {
-        try {
-            // Create a socket that uses the sshuttle proxy server
-            SocketAddress proxyAddress = new InetSocketAddress(sshuttleProxyServer, sshuttleProxyPort);
-            Proxy proxy = new Proxy(Proxy.Type.SOCKS, proxyAddress);
-            Socket socket = new Socket(proxy);
+        PythonInterpreter interpreter = new PythonInterpreter();
+        interpreter.exec("import sshuttle");
+        PythonObject sshuttle = interpreter.get("sshuttle");
 
-            // Connect to the target host and port through the sshuttle proxy server
-            socket.connect(new InetSocketAddress(host, port));
+        // Use sshuttle to establish a connection
+        sshuttle.__call__("connect", host, port, "-v", "--dns", dohProxyServer);
 
-            // Upgrade the socket to an SSL socket using Bouncy Castle
-            SSLSocketFactory sslSocketFactory = (SSLSocketFactory) SSLSocketFactory.getInstance("TLS", new BouncyCastleJsseProvider());
-            SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(socket, host, port, true);
+        // Get the socket object from sshuttle
+        // Note: sshuttle does not provide a direct way to get the socket object
+        // We will use the socket created by sshuttle to establish a SSL connection
+        SocketAddress proxyAddress = new InetSocketAddress(sshuttleProxyServer, sshuttleProxyPort);
+        Proxy proxy = new Proxy(Proxy.Type.SOCKS, proxyAddress);
+        Socket socket = new Socket(proxy);
 
-            // Start the SSL handshake
-            sslSocket.startHandshake();
+        // Connect to the target host and port through the sshuttle proxy server
+        socket.connect(new InetSocketAddress(host, port));
 
-            return sslSocket;
-        } catch (IOException e) {
-            // Handle the exception and throw a meaningful error message
-            throw new IOException("Failed to establish sshuttle tunnel: " + e.getMessage());
-        }
+        // Upgrade the socket to an SSL socket using Bouncy Castle
+        SSLSocketFactory sslSocketFactory = (SSLSocketFactory) SSLSocketFactory.getInstance("TLS", new BouncyCastleJsseProvider());
+        SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(socket, host, port, true);
+
+        // Start the SSL handshake
+        sslSocket.startHandshake();
+
+        return sslSocket;
     }
 }
