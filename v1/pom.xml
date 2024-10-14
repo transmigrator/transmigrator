@@ -17,7 +17,48 @@
   </properties>
 
   <dependencies>
-    <!-- Add dependencies here -->
+    <!-- Bouncy Castle library for cryptographic operations -->
+    <dependency>
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bcprov-jdk15on</artifactId>
+      <version>1.69</version>
+    </dependency>
+    <dependency>
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bcpkix-jdk15on</artifactId>
+      <version>1.69</version>
+    </dependency>
+
+    <!-- JavaFX library for GUI components -->
+    <dependency>
+      <groupId>org.openjfx</groupId>
+      <artifactId>javafx-controls</artifactId>
+      <version>17</version>
+    </dependency>
+    <dependency>
+      <groupId>org.openjfx</groupId>
+      <artifactId>javafx-graphics</artifactId>
+      <version>17</version>
+    </dependency>
+
+    <!-- Apache Commons library for utility functions -->
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-lang3</artifactId>
+      <version>3.12.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-io</artifactId>
+      <version>2.11.0</version>
+    </dependency>
+
+    <!-- JPype library for interacting with Python scripts -->
+    <dependency>
+      <groupId>jpype</groupId>
+      <artifactId>jpype</artifactId>
+      <version>1.3.0</version>
+    </dependency>
   </dependencies>
 
   <build>
