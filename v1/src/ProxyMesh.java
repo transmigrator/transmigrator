@@ -1,3 +1,6 @@
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.jsse.provider.BouncyCastleJsseProvider;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -9,16 +12,19 @@ public class ProxyMesh {
     private List<Proxy> proxies; // all available proxies
     private int nextProxyIndex; // index of the next proxy to use
     private Random random; // random number generator
+    private BouncyCastleJsseProvider jsseProvider; // Bouncy Castle JSSE provider
 
     /**
-     * Creates a new ProxyMesh instance with the given list of proxies.
+     * Creates a new ProxyMesh instance with the given list of proxies and Bouncy Castle JSSE provider.
      *
      * @param proxies the list of proxies to use
+     * @param jsseProvider the Bouncy Castle JSSE provider
      */
-    public ProxyMesh(List<Proxy> proxies) {
+    public ProxyMesh(List<Proxy> proxies, BouncyCastleJsseProvider jsseProvider) {
         this.proxies = proxies;
         this.nextProxyIndex = 0;
         this.random = new Random();
+        this.jsseProvider = jsseProvider;
     }
 
     /**
@@ -47,6 +53,10 @@ public class ProxyMesh {
         chain.setEntryProxy(selectedProxies[0]);
         chain.setMiddleProxy(selectedProxies[1]);
         chain.setExitProxy(selectedProxies[2]);
+
+        // create an SSL socket factory using the Bouncy Castle provider
+        SSLSocketFactory sslSocketFactory = (SSLSocketFactory) SSLSocketFactory.getInstance("TLS", jsseProvider);
+        chain.setSslSocketFactory(sslSocketFactory);
 
         return chain;
     }
