@@ -21,6 +21,10 @@ public class Transmigrator extends Application {
 
     @Override
     public void start(Stage primaryStage) {
+        primaryStage.setOnCloseRequest(event -> {
+            System.exit(0);
+        });
+
         displayLoadingScreen(primaryStage);
 
         // Pause for a few seconds to display the loading screen
