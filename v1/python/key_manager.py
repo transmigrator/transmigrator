@@ -5,59 +5,68 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
 
+
 class KeyManager:
     def __init__(self):
-        self.client_input_keys = None
-        self.server_output_keys = None
+        self.clientInputKeys = None
+        self.serverOutputKeys = None
 
-    def generate_client_input_keys(self):
+
+    def generateClientInputKeys(self):
         # Generate fresh client-input keys (K1, K2, K3) for a single use
-        private_key = ec.generate_private_key(ec.SECP521R1())
-        K1 = private_key.public_key().public_bytes(
+        privateKey = ec.generate_private_key(ec.SECP521R1())
+        K1 = privateKey.public_key().public_bytes(
             encoding=serialization.Encoding.X962,
             format=serialization.PublicFormat.SubjectPublicKeyInfo
         )
-        K2 = private_key.sign(b"client_input", ec.ECDSA(hashlib.sha384()))
+        K2 = privateKey.sign(b"clientInput", ec.ECDSA(hashlib.sha384()))
         K3 = os.urandom(32)
-        self.client_input_keys = (K1, K2, K3)
-        return self.client_input_keys
+        self.clientInputKeys = (K1, K2, K3)
+        return self.clientInputKeys
 
-    def generate_server_output_keys(self):
+
+    def generateServerOutputKeys(self):
         # Generate fresh server-output keys (K4, K5, K6) for a single use
-        private_key = ec.generate_private_key(ec.SECP521R1())
-        K4 = private_key.public_key().public_bytes(
+        privateKey = ec.generate_private_key(ec.SECP521R1())
+        K4 = privateKey.public_key().public_bytes(
             encoding=serialization.Encoding.X962,
             format=serialization.PublicFormat.SubjectPublicKeyInfo
         )
-        K5 = private_key.sign(b"server_output", ec.ECDSA(hashlib.sha384()))
+        K5 = privateKey.sign(b"serverOutput", ec.ECDSA(hashlib.sha384()))
         K6 = os.urandom(32)
-        self.server_output_keys = (K4, K5, K6)
-        return self.server_output_keys
+        self.serverOutputKeys = (K4, K5, K6)
+        return self.serverOutputKeys
 
-    def get_client_input_keys(self):
-        if self.client_input_keys is None:
-            self.generate_client_input_keys()
-        keys = self.client_input_keys
-        self.client_input_keys = None  # Ensure single-use
+
+    def getClientInputKeys(self):
+        if self.clientInputKeys is None:
+            self.generateClientInputKeys()
+        keys = self.clientInputKeys
+        self.clientInputKeys = None  # Ensure single-use
         return keys
 
-    def get_server_output_keys(self):
-        if self.server_output_keys is None:
-            self.generate_server_output_keys()
-        keys = self.server_output_keys
-        self.server_output_keys = None  # Ensure single-use
+
+    def getServerOutputKeys(self):
+        if self.serverOutputKeys is None:
+            self.generateServerOutputKeys()
+        keys = self.serverOutputKeys
+        self.serverOutputKeys = None  # Ensure single-use
         return keys
+
 
 def main():
-    key_manager = KeyManager()
-    client_input_keys = key_manager.get_client_input_keys()
-    server_output_keys = key_manager.get_server_output_keys()
+    keyManager = KeyManager()
+    clientInputKeys = keyManager.getClientInputKeys()
+    serverOutputKeys = keyManager.getServerOutputKeys()
+
 
     print("Client Input Keys:")
-    print(client_input_keys)
+    print(clientInputKeys)
+
 
     print("Server Output Keys:")
-    print(server_output_keys)
+    print(serverOutputKeys)
+
 
 if __name__ == "__main__":
     main()
