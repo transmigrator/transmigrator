@@ -1,7 +1,7 @@
 [package]
-name = "transmigrator"
+name = "Transmigrator"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 authors = ["Matias Monteagudo <project@transmigrator.org>"]
 description = "A safety-critical WebAssembly browser and network pair written in Rust for any OS"
 license = "BUSL-1.1"
