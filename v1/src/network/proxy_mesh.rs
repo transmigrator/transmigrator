@@ -1,10 +1,9 @@
-// src/network/proxy_mesh.rs
+// network/proxy_mesh.rs
 
 use std::collections::VecDeque;
 use rand::seq::SliceRandom;
-use rand::RngCore;
-use aes_gcm::{Aes256Gcm, Key, Nonce};
-use aes_gcm::aead::{Aead, NewAead};
+use crate::network::packet::Packet;
+use crate::crypto;
 
 pub struct ProxyMesh {
     proxies: VecDeque<String>,
@@ -36,7 +35,6 @@ impl ProxyMesh {
             }
         }
 
-        // Randomly permute the order of proxies in the chain
         chain_proxies.shuffle(&mut rand::thread_rng());
 
         let chain = ProxyChain { proxies: chain_proxies };
@@ -52,39 +50,22 @@ impl ProxyMesh {
         self.chains.last()
     }
 
-    pub fn route_packet(&mut self, packet: &[u8]) -> Result<Vec<u8>, String> {
+    pub fn route_packet(&mut self, packet: Packet) -> Result<Packet, String> {
         let chain = self.get_next_chain().ok_or("No proxy chain available")?;
         
-        // Generate a new key for each packet
-        let key = self.generate_key();
+        let key = crypto::generate_key();
+        let encrypted_data = crypto::encrypt_packet(packet.data(), &key)?;
         
-        // Encrypt the packet
-        let encrypted_packet = self.encrypt_packet(packet, &key)?;
+        let routed_data = self.route_through_chain(&encrypted_data, chain)?;
         
+        Ok(Packet::new(routed_data))
+    }
+
+    fn route_through_chain(&self, data: &[u8], chain: &ProxyChain) -> Result<Vec<u8>, String> {
         // TODO: Implement actual routing through the proxy chain
-        // For now, we'll just return the encrypted packet
-        Ok(encrypted_packet)
+        // For now, we'll just return the input data
+        Ok(data.to_vec())
     }
-
-    fn generate_key(&self) -> [u8; 32] {
-        let mut key = [0u8; 32];
-        rand::thread_rng().fill_bytes(&mut key);
-        key
-    }
-
-    fn encrypt_packet(&self, packet: &[u8], key: &[u8; 32]) -> Result<Vec<u8>, String> {
-        let cipher = Aes256Gcm::new(Key::from_slice(key));
-        let nonce = Nonce::from_slice(&[0u8; 12]); // In practice, use a unique nonce for each encryption
-
-        cipher.encrypt(nonce, packet)
-            .map_err(|e| format!("Encryption failed: {:?}", e))
-    }
-
-    // TODO: Implement decrypt_packet function
-
-    // TODO: Implement SSH-like tunneling for hiding traffic from proxies
-
-    // TODO: Implement DNS-over-HTTPS functionality
 }
 
 impl ProxyChain {
@@ -92,5 +73,3 @@ impl ProxyChain {
         &self.proxies
     }
 }
-
-// TODO: Implement additional helper functions for ProxyChain if needed
