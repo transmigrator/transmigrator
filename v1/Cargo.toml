@@ -1,0 +1,30 @@
+[package]
+name = "transmigrator"
+version = "0.1.0"
+edition = "2021"
+authors = ["Matias Monteagudo <project@transmigrator.org>"]
+description = "A safety-critical WebAssembly browser and network pair written in Rust for any OS"
+license = "BUSL-1.1"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+wasm-bindgen = "0.2.83"
+js-sys = "0.3.60"
+web-sys = { version = "0.3.60", features = [
+    "Document",
+    "Element",
+    "HtmlElement",
+    "Node",
+    "Window",
+] }
+rand = { version = "0.8.5", features = ["js"] }
+ring = "0.16.20"
+getrandom = { version = "0.2", features = ["js"] }
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3.33"
+
+[profile.release]
+opt-level = "s"
