@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 authors = ["Your Name <your.email@example.com>"]
 description = "A safety-critical browser and network pair written in Rust"
-license = "MIT OR Apache-2.0"
+license = "BUSL-1.1"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
