@@ -2,8 +2,8 @@
 name = "transmigrator"
 version = "0.1.0"
 edition = "2021"
-authors = ["Your Name <your.email@example.com>"]
-description = "A safety-critical browser and network pair written in Rust"
+authors = ["Matias Monteagudo <project@transmigrator.org>"]
+description = "A safety-critical WebAssembly browser and network pair written in Rust for any OS"
 license = "BUSL-1.1"
 
 [lib]
