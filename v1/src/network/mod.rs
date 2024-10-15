@@ -3,6 +3,9 @@
 use std::collections::VecDeque;
 use rand::seq::SliceRandom;
 
+mod packet;
+use packet::Packet;
+
 pub struct Proxy {
     ip: String,
     port: u16,
@@ -68,5 +71,21 @@ impl ProxyMesh {
         }
         // Remove the chain from active_chains
         self.active_chains.retain(|c| c.proxies != chain.proxies);
+    }
+
+    pub fn route_packet(&mut self, packet: Packet) -> Result<(), String> {
+        let chain = self.create_proxy_chain().ok_or("No available proxy chain")?;
+        
+        // Here we would implement the actual routing logic
+        // For now, let's just print some debug information
+        println!("Routing packet {} through chain:", packet.get_id());
+        for (i, proxy) in chain.proxies.iter().enumerate() {
+            println!("  Hop {}: {}:{}", i+1, proxy.ip, proxy.port);
+        }
+
+        // After routing, recycle the chain
+        self.recycle_chain(chain);
+
+        Ok(())
     }
 }
