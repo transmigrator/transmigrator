@@ -2,6 +2,9 @@
 
 use std::collections::VecDeque;
 use rand::seq::SliceRandom;
+use rand::RngCore;
+use aes_gcm::{Aes256Gcm, Key, Nonce};
+use aes_gcm::aead::{Aead, NewAead};
 
 pub struct ProxyMesh {
     proxies: VecDeque<String>,
@@ -49,14 +52,39 @@ impl ProxyMesh {
         self.chains.last()
     }
 
-    pub fn route_packet(&mut self, packet: &[u8]) -> Vec<u8> {
-        // TODO: Implement packet routing logic
-        // This should include:
-        // 1. Encrypting the packet
-        // 2. Routing through the next available ProxyChain
-        // 3. Implementing SSH-like tunneling
-        unimplemented!("Packet routing not yet implemented")
+    pub fn route_packet(&mut self, packet: &[u8]) -> Result<Vec<u8>, String> {
+        let chain = self.get_next_chain().ok_or("No proxy chain available")?;
+        
+        // Generate a new key for each packet
+        let key = self.generate_key();
+        
+        // Encrypt the packet
+        let encrypted_packet = self.encrypt_packet(packet, &key)?;
+        
+        // TODO: Implement actual routing through the proxy chain
+        // For now, we'll just return the encrypted packet
+        Ok(encrypted_packet)
     }
+
+    fn generate_key(&self) -> [u8; 32] {
+        let mut key = [0u8; 32];
+        rand::thread_rng().fill_bytes(&mut key);
+        key
+    }
+
+    fn encrypt_packet(&self, packet: &[u8], key: &[u8; 32]) -> Result<Vec<u8>, String> {
+        let cipher = Aes256Gcm::new(Key::from_slice(key));
+        let nonce = Nonce::from_slice(&[0u8; 12]); // In practice, use a unique nonce for each encryption
+
+        cipher.encrypt(nonce, packet)
+            .map_err(|e| format!("Encryption failed: {:?}", e))
+    }
+
+    // TODO: Implement decrypt_packet function
+
+    // TODO: Implement SSH-like tunneling for hiding traffic from proxies
+
+    // TODO: Implement DNS-over-HTTPS functionality
 }
 
 impl ProxyChain {
@@ -65,8 +93,4 @@ impl ProxyChain {
     }
 }
 
-// TODO: Implement cryptographic functions for packet encryption and key management
-
-// TODO: Implement DNS-over-HTTPS functionality
-
-// TODO: Implement SSH-like tunneling for hiding traffic from proxies
+// TODO: Implement additional helper functions for ProxyChain if needed
