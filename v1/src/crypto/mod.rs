@@ -1,8 +1,7 @@
-// crypto/mod.rs
+// src/crypto/mod.rs
 
-use aes_gcm::{Aes256Gcm, Key, Nonce};
-use aes_gcm::aead::{Aead, NewAead};
-use rand::RngCore;
+use ring::aead::{self, Aad, BoundKey, LessSafeKey, Nonce, UnboundKey, AES_256_GCM};
+use ring::rand::{SecureRandom, SystemRandom};
 
 pub fn generate_key() -> [u8; 32] {
     let mut key = [0u8; 32];
@@ -10,18 +9,35 @@ pub fn generate_key() -> [u8; 32] {
     key
 }
 
-pub fn encrypt_packet(packet: &[u8], key: &[u8; 32]) -> Result<Vec<u8>, String> {
-    let cipher = Aes256Gcm::new(Key::from_slice(key));
-    let nonce = Nonce::from_slice(&[0u8; 12]); // In practice, use a unique nonce for each encryption
+pub fn encrypt_packet(packet: &[u8], key: &[u8]) -> Vec<u8> {
+    let unbound_key = UnboundKey::new(&AES_256_GCM, key).expect("Invalid key length");
+    let nonce = generate_nonce();
+    let mut in_out = packet.to_vec();
+    let nonce = Nonce::assume_unique_for_key(nonce);
+    let key = LessSafeKey::new(unbound_key);
 
-    cipher.encrypt(nonce, packet)
-        .map_err(|e| format!("Encryption failed: {:?}", e))
+    key.seal_in_place_append_tag(nonce, Aad::empty(), &mut in_out)
+        .expect("Encryption failed");
+
+    [nonce.as_ref(), in_out.as_slice()].concat()
 }
 
-pub fn decrypt_packet(encrypted_packet: &[u8], key: &[u8; 32]) -> Result<Vec<u8>, String> {
-    let cipher = Aes256Gcm::new(Key::from_slice(key));
-    let nonce = Nonce::from_slice(&[0u8; 12]); // Should match the nonce used for encryption
+pub fn decrypt_packet(encrypted_packet: &[u8], key: &[u8]) -> Vec<u8> {
+    let unbound_key = UnboundKey::new(&AES_256_GCM, key).expect("Invalid key length");
+    let (nonce, ciphertext) = encrypted_packet.split_at(NONCE_SIZE);
+    let nonce = Nonce::try_assume_unique_for_key(nonce).expect("Invalid nonce length");
+    let key = LessSafeKey::new(unbound_key);
+    let mut in_out = ciphertext.to_vec();
 
-    cipher.decrypt(nonce, encrypted_packet)
-        .map_err(|e| format!("Decryption failed: {:?}", e))
+    key.open_in_place(nonce, Aad::empty(), &mut in_out)
+        .expect("Decryption failed");
+
+    in_out
+}
+
+fn generate_nonce() -> [u8; NONCE_SIZE] {
+    let rng = SystemRandom::new();
+    let mut nonce = [0u8; NONCE_SIZE];
+    rng.fill(&mut nonce).expect("Failed to generate nonce");
+    nonce
 }
