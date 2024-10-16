@@ -3,6 +3,7 @@
 use rand::Rng;
 use std::time::{SystemTime, UNIX_EPOCH};
 use ring::{aead, rand as ring_rand};
+use crate::network::proxy_mesh::ProxyMesh;
 
 const PACKET_SIZE: usize = 1280;
 const KEY_SIZE: usize = 32; // 256 bits
@@ -18,18 +19,6 @@ impl Packet {
         Packet { data }
     }
 
-    pub fn get_id(&self) -> u64 {
-        self.id
-    }
-
-    pub fn get_data(&self) -> &[u8] {
-        &self.data
-    }
-
-    pub fn get_timestamp(&self) -> u64 {
-        self.timestamp
-    }
-
     pub fn encrypt(&self, key: &[u8]) -> Vec<u8> {
         let proxy_mesh = ProxyMesh {};
         proxy_mesh.encrypt_packet(&self.data, key)
@@ -40,3 +29,4 @@ impl Packet {
         proxy_mesh.decrypt_packet(encrypted_data, key)
     }
 }
+
