@@ -1,0 +1,21 @@
+[package]
+name = "v1"
+version = "0.1.0"
+edition = "2021"
+authors = ["Matias Monteagudo <project@transmigrator.org>"]
+description = "A safety-critical WebAssembly browser and network pair written in Rust for any OS"
+license = "BUSL-1.1"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+wasm-bindgen = "0.2"
+rand = "0.8"
+log = "0.4"
+env_logger = "0.9"
+serde = { version = "1.0", features = ["derive"] }
+serde_wasm_bindgen = "0.9"
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3"
