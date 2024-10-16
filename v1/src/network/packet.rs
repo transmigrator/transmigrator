@@ -9,26 +9,12 @@ const KEY_SIZE: usize = 32; // 256 bits
 const NONCE_SIZE: usize = 12; // 96 bits
 
 pub struct Packet {
-    id: u64,
-    data: [u8; PACKET_SIZE],
-    timestamp: u64,
+    // Define the structure of a packet
 }
 
 impl Packet {
-    pub fn new(data: &[u8]) -> Self {
-        let mut rng = rand::thread_rng();
-        let mut packet_data = [0u8; PACKET_SIZE];
-        let len = std::cmp::min(data.len(), PACKET_SIZE);
-        packet_data[..len].copy_from_slice(&data[..len]);
-
-        Self {
-            id: rng.gen(),
-            data: packet_data,
-            timestamp: SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .expect("Time went backwards")
-                .as_secs(),
-        }
+    pub fn new() -> Self {
+        // Initialize a packet with cryptographic independence
     }
 
     pub fn get_id(&self) -> u64 {
