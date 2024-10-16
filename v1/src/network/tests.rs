@@ -1,4 +1,4 @@
-// network/tests.rs
+// tests.rs
 
 #[cfg(test)]
 mod tests {
