@@ -3,11 +3,7 @@
 use ring::aead::{self, Aad, BoundKey, LessSafeKey, Nonce, UnboundKey, AES_256_GCM};
 use ring::rand::{SecureRandom, SystemRandom};
 
-pub fn generate_key() -> [u8; 32] {
-    let mut key = [0u8; 32];
-    rand::thread_rng().fill_bytes(&mut key);
-    key
-}
+const NONCE_SIZE: usize = 12;
 
 pub fn encrypt_packet(packet: &[u8], key: &[u8]) -> Vec<u8> {
     let unbound_key = UnboundKey::new(&AES_256_GCM, key).expect("Invalid key length");
