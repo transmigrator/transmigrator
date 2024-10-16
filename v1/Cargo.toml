@@ -1,5 +1,5 @@
 [package]
-name = "transmigrator"
+name = "v1"
 version = "0.1.0"
 edition = "2021"
 authors = ["Matias Monteagudo <project@transmigrator.org>"]
@@ -25,6 +25,3 @@ getrandom = { version = "0.2", features = ["js"] }
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.33"
-
-[profile.release]
-opt-level = "s"
