@@ -3,7 +3,7 @@
 use std::collections::VecDeque;
 use rand::seq::SliceRandom;
 use wasm_bindgen::prelude::*;
-use crate::network::proxy_mesh::ProxyMesh;
+use serde_wasm_bindgen;
 use crate::network::packet::Packet;
 
 pub mod proxy_mesh;
@@ -14,6 +14,7 @@ pub struct Proxy {
     port: u16,
 }
 
+#[derive(Clone)]
 pub struct ProxyChain {
     proxies: Vec<Proxy>,
 }
@@ -115,7 +116,10 @@ impl Network {
     }
 
     pub fn encrypt_packet(&self, data: &[u8]) -> Vec<u8> {
-        let packet = Packet::new(data.to_vec());
+        let packet = match Packet::new(data.to_vec()) {
+            Ok(packet) => packet,
+            Err(_) => return vec![], // Handle the error appropriately
+        };
         self.proxy_mesh.encrypt_packet(&packet)
     }
 
@@ -125,8 +129,11 @@ impl Network {
     }
 
     pub fn tunnel_packet(&self, data: &[u8], chain: JsValue) -> Vec<u8> {
-        let packet = Packet::new(data.to_vec());
-        let chain: ProxyChain = chain.into_serde().unwrap();
+        let packet = match Packet::new(data.to_vec()) {
+            Ok(packet) => packet,
+            Err(_) => return vec![], // Handle the error appropriately
+        };
+        let chain: ProxyChain = serde_wasm_bindgen::from_value(chain).unwrap();
         self.proxy_mesh.tunnel_packet(&packet, &chain)
     }
 }
