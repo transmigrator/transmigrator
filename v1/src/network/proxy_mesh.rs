@@ -1,21 +1,16 @@
 // src/network/proxy_mesh.rs
 
-use wasm_bindgen::prelude::*;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 use std::collections::VecDeque;
 use log::info;
 use std::net::TcpStream;
-use wasmer::Memory;
 
-#[wasm_bindgen]
 pub struct ProxyMesh {
     proxies: VecDeque<String>,
 }
 
-#[wasm_bindgen]
 impl ProxyMesh {
-    #[wasm_bindgen(constructor)]
     pub fn new(proxy_list: Vec<String>) -> ProxyMesh {
         ProxyMesh {
             proxies: VecDeque::from(proxy_list),
@@ -53,7 +48,7 @@ impl ProxyMesh {
         packet.to_vec()
     }
 
-    pub fn doh_query(&self, domain: &str) -> Result<String, JsValue> {
+    pub fn doh_query(&self, domain: &str) -> Result<String, Box<dyn std::error::Error>> {
         // Implement DNS-over-HTTPS query logic
         info!("Querying DoH for domain: {}", domain);
         Ok("127.0.0.1".to_string())
