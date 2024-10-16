@@ -1,4 +1,4 @@
-// file_manager/packet.rs
+// file_manager/mod.rs
 
 pub struct FileManager;
 
