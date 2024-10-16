@@ -1,15 +1,14 @@
 // browser/tab.rs
 
 pub struct Tab {
-    pub id: usize,
-    pub content: String,
+    // Define the structure of a tab
 }
 
 impl Tab {
-    pub fn new(id: usize) -> Self {
+    pub fn new() -> Self {
+        // Initialize a new tab
         Tab {
-            id,
-            content: String::new(),
+            // Initialization logic
         }
     }
 }
