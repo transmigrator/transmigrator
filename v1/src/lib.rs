@@ -1,6 +1,5 @@
 // lib.rs
 
-use wasm_bindgen::prelude::*;
 
 pub mod browser;
 pub mod crypto;
@@ -11,16 +10,13 @@ use browser::interface::{start, Browser};
 use file_manager::FileManager;
 use network::ProxyMesh;
 
-#[wasm_bindgen]
 pub struct Transmigrator {
     browser: Browser,
     network: ProxyMesh,
     file_manager: FileManager,
 }
 
-#[wasm_bindgen]
 impl Transmigrator {
-    #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
         Self {
             browser: Browser::new(),
@@ -35,7 +31,6 @@ impl Transmigrator {
     }
 }
 
-#[wasm_bindgen(start)]
 pub fn main() -> Result<(), JsValue> {
     start();
     Ok(())
