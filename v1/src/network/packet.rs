@@ -6,7 +6,8 @@ const PACKET_SIZE: usize = 1280;
 
 pub struct Packet {
     data: [u8; PACKET_SIZE],
-    // Other fields
+    id: u32,
+    // Add other fields here
 }
 
 impl Packet {
@@ -16,7 +17,7 @@ impl Packet {
         }
         let mut fixed_data = [0u8; PACKET_SIZE];
         fixed_data.copy_from_slice(&data);
-        Ok(Packet { data: fixed_data })
+        Ok(Packet { data: fixed_data, id: 0 }) // Default id to 0 or another appropriate value
     }
 
     pub fn encrypt(&self, key: &[u8]) -> Vec<u8> {
@@ -26,6 +27,8 @@ impl Packet {
     pub fn decrypt(encrypted_data: &[u8], key: &[u8]) -> Vec<u8> {
         decrypt_packet(encrypted_data, key)
     }
+
+    pub fn get_id(&self) -> u32 {
+        self.id
+    }
 }
-
-
