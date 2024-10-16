@@ -2,10 +2,10 @@
 
 use wasm_bindgen::prelude::*;
 
-mod browser;
-mod crypto;
-mod file_manager;
-mod network;
+pub mod browser;
+pub mod crypto;
+pub mod file_manager;
+pub mod network;
 
 use browser::Browser;
 use file_manager::FileManager;
@@ -38,7 +38,7 @@ impl Transmigrator {
 
 // This is the entry point of the WASM module
 #[wasm_bindgen(start)]
-pub fn main() {
-    // Any initialization code can go here
-    web_sys::console::log_1(&"Transmigrator initialized".into());
+pub fn main() -> Result<(), JsValue> {
+    browser::interface::start()?;
+    Ok(())
 }
