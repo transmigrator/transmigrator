@@ -1,12 +1,11 @@
-// network/proxy_mesh.rs
+// src/network/proxy_mesh.rs
 
 use std::collections::VecDeque;
 use rand::seq::SliceRandom;
 use crate::network::packet::Packet;
 use crate::crypto;
-use aes_gcm::{Aes256Gcm, Key, Nonce}; // Or `aes_gcm::Aes256Gcm`
-use aes_gcm::aead::{Aead, NewAead};
-use rand::Rng;
+use ring::aead::{self, Aad, BoundKey, LessSafeKey, Nonce, UnboundKey, AES_256_GCM};
+use ring::rand::{SecureRandom, SystemRandom};
 
 pub struct ProxyMesh {
     // Existing fields
@@ -25,26 +24,35 @@ impl ProxyMesh {
     }
 
     pub fn encrypt_packet(&self, packet: &[u8], key: &[u8]) -> Vec<u8> {
-        let key = Key::from_slice(key);
-        let cipher = Aes256Gcm::new(key);
+        let unbound_key = UnboundKey::new(&AES_256_GCM, key).expect("Invalid key length");
+        let nonce = self.generate_nonce();
+        let mut in_out = packet.to_vec();
+        let nonce = Nonce::assume_unique_for_key(nonce);
+        let key = LessSafeKey::new(unbound_key);
 
-        let nonce = rand::thread_rng().gen::<[u8; 12]>();
-        let nonce = Nonce::from_slice(&nonce);
+        key.seal_in_place_append_tag(nonce, Aad::empty(), &mut in_out)
+            .expect("Encryption failed");
 
-        let ciphertext = cipher.encrypt(nonce, packet)
-            .expect("encryption failure!");
-
-        [nonce.as_slice(), ciphertext.as_slice()].concat()
+        [nonce.as_ref(), in_out.as_slice()].concat()
     }
 
     pub fn decrypt_packet(&self, encrypted_packet: &[u8], key: &[u8]) -> Vec<u8> {
-        let key = Key::from_slice(key);
-        let cipher = Aes256Gcm::new(key);
+        let unbound_key = UnboundKey::new(&AES_256_GCM, key).expect("Invalid key length");
+        let (nonce, ciphertext) = encrypted_packet.split_at(NONCE_SIZE);
+        let nonce = Nonce::try_assume_unique_for_key(nonce).expect("Invalid nonce length");
+        let key = LessSafeKey::new(unbound_key);
+        let mut in_out = ciphertext.to_vec();
 
-        let (nonce, ciphertext) = encrypted_packet.split_at(12);
-        let nonce = Nonce::from_slice(nonce);
+        key.open_in_place(nonce, Aad::empty(), &mut in_out)
+            .expect("Decryption failed");
 
-        cipher.decrypt(nonce, ciphertext)
-            .expect("decryption failure!")
+        in_out
+    }
+
+    fn generate_nonce(&self) -> [u8; NONCE_SIZE] {
+        let rng = SystemRandom::new();
+        let mut nonce = [0u8; NONCE_SIZE];
+        rng.fill(&mut nonce).expect("Failed to generate nonce");
+        nonce
     }
 }
