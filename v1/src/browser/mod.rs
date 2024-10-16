@@ -1,6 +1,6 @@
 // browser/mod.rs
 
-mod interface;
-mod tab;
+pub mod interface;
+pub mod tabs;
 
 pub use interface::BrowserInterface;
