@@ -5,6 +5,8 @@ use rand::seq::SliceRandom;
 use rand::thread_rng;
 use std::collections::VecDeque;
 use log::info;
+use std::net::TcpStream;
+use wasmer::Memory;
 
 #[wasm_bindgen]
 pub struct ProxyMesh {
@@ -55,5 +57,9 @@ impl ProxyMesh {
         // Implement DNS-over-HTTPS query logic
         info!("Querying DoH for domain: {}", domain);
         Ok("127.0.0.1".to_string())
+    }
+
+    pub fn send_packet(&self, packet: &[u8]) {
+        // Implement the logic to send a packet through the ProxyMesh
     }
 }
