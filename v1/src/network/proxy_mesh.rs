@@ -12,6 +12,9 @@ pub struct ProxyMesh {
 impl ProxyMesh {
     pub fn new() -> Self {
         // Initialize ProxyMesh
+        ProxyMesh {
+            // Initialization logic
+        }
     }
 
     pub fn create_proxy_chain(&self) {
