@@ -3,7 +3,8 @@
 use std::collections::VecDeque;
 use rand::seq::SliceRandom;
 
-mod packet;
+pub mod proxy_mesh;
+pub mod packet;
 use packet::Packet;
 
 pub struct Proxy {
