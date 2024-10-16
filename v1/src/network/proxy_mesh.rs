@@ -9,7 +9,7 @@ use aes_gcm::aead::{Aead, NewAead};
 use rand::Rng;
 
 pub struct ProxyMesh {
-    // Define the structure of ProxyMesh
+    // Existing fields
 }
 
 impl ProxyMesh {
