@@ -10,6 +10,8 @@ use js_sys::Array;
 use web_sys::FileReader;
 use web_sys::Blob;
 use web_sys::Url;
+use std::fs::File;
+use std::io::{Read, Write};
 
 #[wasm_bindgen]
 pub struct FileManager {
@@ -67,6 +69,21 @@ impl FileManager {
                 onloadend.forget();
             }
         }
+        Ok(())
+    }
+}
+
+impl FileManager {
+    pub fn read_file(path: &str) -> Result<Vec<u8>, std::io::Error> {
+        let mut file = File::open(path)?;
+        let mut buffer = Vec::new();
+        file.read_to_end(&mut buffer)?;
+        Ok(buffer)
+    }
+
+    pub fn write_file(path: &str, data: &[u8]) -> Result<(), std::io::Error> {
+        let mut file = File::create(path)?;
+        file.write_all(data)?;
         Ok(())
     }
 }
