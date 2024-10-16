@@ -1,26 +1,24 @@
 // browser/interface.rs
 
 use wasm_bindgen::prelude::*;
-use web_sys::{Document, Window, HtmlInputElement, HtmlElement};
-use super::tabs::Tab;
+use web_sys::{window, Document, Element};
 use crate::browser::tabs::Tab;
 
-#[wasm_bindgen(start)]
+#[wasm_bindgen]
 pub fn start() -> Result<(), JsValue> {
-    let window: Window = web_sys::window().expect("no global `window` exists");
-    let document: Document = window.document().expect("should have a document on window");
+    let window = window().unwrap();
+    let document = window.document().unwrap();
+    let body = document.body().unwrap();
 
-    // Display loading screen
-    let body = document.body().expect("document should have a body");
-    body.set_inner_html("<div id='loading' style='background-color: black; height: 100vh; display: flex; align-items: center; justify-content: center;'>
-                            <img src='path/to/loading.svg' alt='Loading...' />
-                         </div>");
+    // Create and display the loading screen
+    let loading_screen = create_loading_screen(&document)?;
+    body.append_child(&loading_screen)?;
 
     // Remove loading screen after 3 seconds
     let closure = Closure::wrap(Box::new(move || {
-        let loading_div = document.get_element_by_id("loading").unwrap();
-        loading_div.remove();
-        // Initialize the main interface here
+        loading_screen.remove();
+        // Create the minimalistic interface
+        create_interface(&document).unwrap();
     }) as Box<dyn Fn()>);
     window.set_timeout_with_callback_and_timeout_and_arguments_0(closure.as_ref().unchecked_ref(), 3000)?;
     closure.forget();
@@ -28,26 +26,35 @@ pub fn start() -> Result<(), JsValue> {
     Ok(())
 }
 
-fn init_browser_interface(document: &Document) -> Result<(), JsValue> {
+fn create_loading_screen(document: &Document) -> Result<Element, JsValue> {
+    let loading_screen = document.create_element("div")?;
+    loading_screen.set_inner_html(r#"<svg>...</svg>"#); // Replace with your SVG content
+    loading_screen.set_attribute("style", "height: 100vh; width: 100vw; background: black; display: flex; justify-content: center; align-items: center;")?;
+    Ok(loading_screen)
+}
+
+fn create_interface(document: &Document) -> Result<(), JsValue> {
+    let body = document.body().unwrap();
+    body.set_attribute("style", "background: black; color: white; font-family: sans-serif;")?;
+
     // Create address bar
     let address_bar = document.create_element("input")?;
     address_bar.set_attribute("type", "text")?;
     address_bar.set_attribute("placeholder", "Enter URL or IP")?;
-    document.body().unwrap().append_child(&address_bar)?;
+    address_bar.set_attribute("style", "width: 80%; padding: 10px; margin: 20px; border: none; background: #333; color: white;")?;
+    body.append_child(&address_bar)?;
 
-    // Add event listener for address bar
-    let address_bar_clone = address_bar.clone();
-    let closure = Closure::wrap(Box::new(move || {
-        let input: HtmlInputElement = address_bar_clone.dyn_into().unwrap();
-        let value = input.value();
-        if is_command(&value) {
-            execute_command(&value);
-        } else {
-            load_url(&value);
-        }
-    }) as Box<dyn Fn()>);
-    address_bar.add_event_listener_with_callback("change", closure.as_ref().unchecked_ref())?;
-    closure.forget();
+    // Create open tab button
+    let open_tab_button = document.create_element("button")?;
+    open_tab_button.set_inner_html("Open Tab");
+    open_tab_button.set_attribute("style", "padding: 10px 20px; margin: 20px; border: none; background: #333; color: white; cursor: pointer;")?;
+    body.append_child(&open_tab_button)?;
+
+    // Create close tab button
+    let close_tab_button = document.create_element("button")?;
+    close_tab_button.set_inner_html("Close Tab");
+    close_tab_button.set_attribute("style", "padding: 10px 20px; margin: 20px; border: none; background: #333; color: white; cursor: pointer;")?;
+    body.append_child(&close_tab_button)?;
 
     Ok(())
 }
