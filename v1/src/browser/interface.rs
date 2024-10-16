@@ -27,10 +27,16 @@ pub fn start() -> Result<(), JsValue> {
 }
 
 fn create_loading_screen(document: &Document) -> Result<Element, JsValue> {
-    let loading_screen = document.create_element("div")?;
-    loading_screen.set_inner_html(r#"<svg>...</svg>"#); // Replace with your SVG content
-    loading_screen.set_attribute("style", "height: 100vh; width: 100vw; background: black; display: flex; justify-content: center; align-items: center;")?;
-    Ok(loading_screen)
+    let loading_div = document.create_element("div")?;
+    loading_div.set_attribute("style", "height: 100vh; background-color: black; display: flex; justify-content: center; align-items: center;")?;
+
+    let svg = document.create_element_ns(Some("http://www.w3.org/2000/svg"), "svg")?;
+    svg.set_attribute("width", "100")?;
+    svg.set_attribute("height", "100")?;
+    svg.set_inner_html("<circle cx='50' cy='50' r='40' stroke='white' stroke-width='3' fill='none' />");
+
+    loading_div.append_child(&svg)?;
+    Ok(loading_div)
 }
 
 fn create_interface(document: &Document) -> Result<(), JsValue> {
