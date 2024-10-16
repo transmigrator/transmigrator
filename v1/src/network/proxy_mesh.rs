@@ -1,10 +1,10 @@
 // src/network/proxy_mesh.rs
 
 use wasm_bindgen::prelude::*;
-use web_sys::console;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 use std::collections::VecDeque;
+use log::info;
 
 #[wasm_bindgen]
 pub struct ProxyMesh {
@@ -47,13 +47,13 @@ impl ProxyMesh {
 
     pub fn tunnel_packet(&self, packet: &[u8], chain: Vec<String>) -> Vec<u8> {
         // Implement SSH-like tunneling logic
-        console::log_1(&format!("Tunneling packet through chain: {:?}", chain).into());
+        info!("Tunneling packet through chain: {:?}", chain);
         packet.to_vec()
     }
 
     pub fn doh_query(&self, domain: &str) -> Result<String, JsValue> {
         // Implement DNS-over-HTTPS query logic
-        console::log_1(&format!("Querying DoH for domain: {}", domain).into());
+        info!("Querying DoH for domain: {}", domain);
         Ok("127.0.0.1".to_string())
     }
 }
