@@ -15,6 +15,9 @@ pub struct Packet {
 impl Packet {
     pub fn new() -> Self {
         // Initialize a packet with cryptographic independence
+        Packet {
+            // Initialization logic
+        }
     }
 
     pub fn get_id(&self) -> u64 {
