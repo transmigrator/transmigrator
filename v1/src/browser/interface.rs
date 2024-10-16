@@ -108,7 +108,7 @@ impl Browser {
     }
 
     pub fn switch_tab(&mut self, id: usize) {
-        if (id < self.tabs.len()) {
+        if id < self.tabs.len() {
             self.current_tab = id;
         }
     }
