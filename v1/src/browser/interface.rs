@@ -1,8 +1,8 @@
 // browser/interface.rs
 
 use wasm_bindgen::prelude::*;
-use web_sys::{Document, Window};
-use super::tab::Tab;
+use web_sys::{Document, Window, HtmlInputElement, HtmlElement};
+use super::tabs::Tab;
 
 #[wasm_bindgen(start)]
 pub fn start() -> Result<(), JsValue> {
@@ -36,67 +36,46 @@ fn display_loading_screen(document: &Document) -> Result<(), JsValue> {
 }
 
 fn init_browser_interface(document: &Document) -> Result<(), JsValue> {
-    // Implement address bar, tab management, and file manager initialization here
+    // Create address bar
+    let address_bar = document.create_element("input")?;
+    address_bar.set_attribute("type", "text")?;
+    address_bar.set_attribute("placeholder", "Enter URL or IP")?;
+    document.body().unwrap().append_child(&address_bar)?;
+
+    // Add event listener for address bar
+    let address_bar_clone = address_bar.clone();
+    let closure = Closure::wrap(Box::new(move || {
+        let input: HtmlInputElement = address_bar_clone.dyn_into().unwrap();
+        let value = input.value();
+        if is_command(&value) {
+            execute_command(&value);
+        } else {
+            load_url(&value);
+        }
+    }) as Box<dyn Fn()>);
+    address_bar.add_event_listener_with_callback("change", closure.as_ref().unchecked_ref())?;
+    closure.forget();
+
     Ok(())
+}
+
+fn is_command(input: &str) -> bool {
+    // Implement command detection logic
+    input.starts_with("cmd:")
+}
+
+fn execute_command(command: &str) {
+    // Implement command execution logic
+    web_sys::console::log_1(&format!("Executing command: {}", command).into());
+}
+
+fn load_url(url: &str) {
+    // Implement URL loading logic
+    web_sys::console::log_1(&format!("Loading URL: {}", url).into());
 }
 
 #[wasm_bindgen]
 pub struct BrowserInterface {
     address_bar: String,
     tabs: Vec<Tab>,
-    download_directory: String,
-    proxy_list_path: Option<String>,
-}
-
-#[wasm_bindgen]
-impl BrowserInterface {
-    pub fn new() -> Self {
-        BrowserInterface {
-            address_bar: String::new(),
-            tabs: vec![Tab::new(0)],
-            download_directory: String::from("/downloads"), // Default download directory
-            proxy_list_path: None,
-        }
-    }
-
-    pub fn navigate(&mut self, input: &str) {
-        if self.is_command(input) {
-            let result = self.execute_command(input);
-            // TODO: Display result in the current tab
-        } else {
-            // TODO: Implement actual navigation logic
-            self.address_bar = input.to_string();
-        }
-    }
-
-    pub fn open_tab(&mut self) {
-        let new_id = self.tabs.len();
-        self.tabs.push(Tab::new(new_id));
-    }
-
-    pub fn close_tab(&mut self, tab_id: usize) {
-        self.tabs.retain(|tab| tab.id != tab_id);
-    }
-
-    fn is_command(&self, input: &str) -> bool {
-        input.starts_with('/')
-    }
-
-    fn execute_command(&self, command: &str) -> String {
-        // TODO: Implement more complex command execution logic
-        match command {
-            "/help" => String::from("Available commands: /help, /set_download_dir, /set_proxy_list"),
-            _ => format!("Unknown command: {}", command),
-        }
-    }
-
-    pub fn set_download_directory(&mut self, path: &str) {
-        self.download_directory = path.to_string();
-    }
-
-    pub fn set_proxy_list(&mut self, path: &str) {
-        self.proxy_list_path = Some(path.to_string());
-    }
-
-    // TODO: Implement methods for file upload and download
 }
