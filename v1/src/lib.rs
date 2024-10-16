@@ -7,7 +7,7 @@ pub mod crypto;
 pub mod file_manager;
 pub mod network;
 
-use browser::Browser;
+use browser::interface::start;
 use file_manager::FileManager;
 use network::ProxyMesh;
 
@@ -31,14 +31,12 @@ impl Transmigrator {
 
     pub fn run(&mut self) {
         // Main execution logic
-        // For now, we'll just log a message
         web_sys::console::log_1(&"Transmigrator is running".into());
     }
 }
 
-// This is the entry point of the WASM module
 #[wasm_bindgen(start)]
 pub fn main() -> Result<(), JsValue> {
-    browser::interface::start()?;
+    start()?;
     Ok(())
 }
