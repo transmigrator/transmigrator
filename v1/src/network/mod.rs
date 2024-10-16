@@ -2,8 +2,6 @@
 
 use std::collections::VecDeque;
 use rand::seq::SliceRandom;
-use wasm_bindgen::prelude::*;
-use serde_wasm_bindgen;
 use crate::network::packet::Packet;
 
 pub mod proxy_mesh;
@@ -90,14 +88,11 @@ impl ProxyMesh {
     }
 }
 
-#[wasm_bindgen]
 pub struct Network {
     proxy_mesh: ProxyMesh,
 }
 
-#[wasm_bindgen]
 impl Network {
-    #[wasm_bindgen(constructor)]
     pub fn new() -> Network {
         Network {
             proxy_mesh: ProxyMesh::new(),
@@ -133,7 +128,6 @@ impl Network {
             Ok(packet) => packet,
             Err(_) => return vec![], // Handle the error appropriately
         };
-        let chain: ProxyChain = serde_wasm_bindgen::from_value(chain).unwrap();
         self.proxy_mesh.tunnel_packet(&packet, &chain)
     }
 }
