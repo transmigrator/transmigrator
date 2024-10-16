@@ -3,10 +3,11 @@
 use std::collections::VecDeque;
 use rand::seq::SliceRandom;
 use wasm_bindgen::prelude::*;
+use crate::network::proxy_mesh::ProxyMesh;
+use crate::network::packet::Packet;
 
 pub mod proxy_mesh;
 pub mod packet;
-use packet::Packet;
 
 pub struct Proxy {
     ip: String,
@@ -43,52 +44,48 @@ impl ProxyMesh {
         }
     }
 
-    pub fn add_proxy(&mut self, proxy: Proxy) {
+    pub fn add_proxy(&mut self, ip: String, port: u16) {
+        let proxy = Proxy::new(ip, port);
         self.proxy_pool.push_back(proxy);
     }
 
-    pub fn create_proxy_chain(&mut self) -> Option<ProxyChain> {
+    pub fn create_proxy_chain(&mut self) -> Result<ProxyChain, &'static str> {
         if self.proxy_pool.len() < 3 {
-            return None;
+            return Err("Not enough proxies to create a chain");
         }
 
+        let mut rng = rand::thread_rng();
         let mut proxies = Vec::new();
         for _ in 0..3 {
             if let Some(proxy) = self.proxy_pool.pop_front() {
                 proxies.push(proxy);
             }
         }
-
-        // Randomly permute the proxies
-        proxies.shuffle(&mut rand::thread_rng());
-
+        proxies.shuffle(&mut rng);
         let chain = ProxyChain::new(proxies);
         self.active_chains.push(chain.clone());
-        Some(chain)
+        Ok(chain)
     }
 
-    pub fn recycle_chain(&mut self, chain: ProxyChain) {
-        for proxy in chain.proxies {
-            self.proxy_pool.push_back(proxy);
-        }
-        // Remove the chain from active_chains
-        self.active_chains.retain(|c| c.proxies != chain.proxies);
+    pub fn encrypt_packet(&self, packet: &Packet) -> Vec<u8> {
+        // Implement packet encryption logic
+        packet.data().clone()
     }
 
-    pub fn route_packet(&mut self, packet: Packet) -> Result<(), String> {
-        let chain = self.create_proxy_chain().ok_or("No available proxy chain")?;
-        
-        // Here we would implement the actual routing logic
-        // For now, let's just print some debug information
-        println!("Routing packet {} through chain:", packet.get_id());
-        for (i, proxy) in chain.proxies.iter().enumerate() {
-            println!("  Hop {}: {}:{}", i+1, proxy.ip, proxy.port);
+    pub fn decrypt_packet(&self, encrypted_data: &[u8]) -> Packet {
+        // Implement packet decryption logic
+        Packet::new(encrypted_data.to_vec()) // Assuming default constructor for simplicity
+    }
+
+    pub fn tunnel_packet(&self, packet: &Packet, chain: &ProxyChain) -> Vec<u8> {
+        // Implement SSH-like tunneling logic
+        let encrypted_data = self.encrypt_packet(packet);
+        // Simulate tunneling through proxies
+        for proxy in &chain.proxies {
+            // Simulate sending data to proxy
+            web_sys::console::log_1(&format!("Tunneling through proxy: {}:{}", proxy.ip, proxy.port).into());
         }
-
-        // After routing, recycle the chain
-        self.recycle_chain(chain);
-
-        Ok(())
+        encrypted_data
     }
 }
 
@@ -100,29 +97,36 @@ pub struct Network {
 #[wasm_bindgen]
 impl Network {
     #[wasm_bindgen(constructor)]
-    pub fn new(proxy_list: Vec<String>) -> Network {
+    pub fn new() -> Network {
         Network {
             proxy_mesh: ProxyMesh::new(),
         }
     }
 
-    pub fn create_proxy_chain(&mut self) -> Vec<String> {
-        self.proxy_mesh.create_proxy_chain()
+    pub fn add_proxy(&mut self, ip: String, port: u16) {
+        self.proxy_mesh.add_proxy(ip, port);
     }
 
-    pub fn encrypt_packet(&self, packet: &[u8]) -> Vec<u8> {
-        self.proxy_mesh.encrypt_packet(packet)
+    pub fn create_proxy_chain(&mut self) -> Result<JsValue, JsValue> {
+        match self.proxy_mesh.create_proxy_chain() {
+            Ok(chain) => Ok(JsValue::from_serde(&chain).unwrap()),
+            Err(e) => Err(JsValue::from_str(e)),
+        }
     }
 
-    pub fn decrypt_packet(&self, packet: &[u8]) -> Vec<u8> {
-        self.proxy_mesh.decrypt_packet(packet)
+    pub fn encrypt_packet(&self, data: &[u8]) -> Vec<u8> {
+        let packet = Packet::new(data.to_vec());
+        self.proxy_mesh.encrypt_packet(&packet)
     }
 
-    pub fn tunnel_packet(&self, packet: &[u8], chain: Vec<String>) -> Vec<u8> {
-        self.proxy_mesh.tunnel_packet(packet, chain)
+    pub fn decrypt_packet(&self, encrypted_data: &[u8]) -> Vec<u8> {
+        let packet = self.proxy_mesh.decrypt_packet(encrypted_data);
+        packet.data().clone()
     }
 
-    pub fn doh_query(&self, domain: &str) -> Result<String, JsValue> {
-        self.proxy_mesh.doh_query(domain)
+    pub fn tunnel_packet(&self, data: &[u8], chain: JsValue) -> Vec<u8> {
+        let packet = Packet::new(data.to_vec());
+        let chain: ProxyChain = chain.into_serde().unwrap();
+        self.proxy_mesh.tunnel_packet(&packet, &chain)
     }
 }
