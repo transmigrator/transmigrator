@@ -1,6 +1,5 @@
 // file_manager/mod.rs
 
-use wasm_bindgen::prelude::*;
 pub fn window() -> Option<web_sys::Window> {
     web_sys::window()
 }
@@ -13,14 +12,11 @@ use web_sys::Url;
 use std::fs::File;
 use std::io::{Read, Write};
 
-#[wasm_bindgen]
 pub struct FileManager {
     selected_file: Option<HtmlInputElement>,
 }
 
-#[wasm_bindgen]
 impl FileManager {
-    #[wasm_bindgen(constructor)]
     pub fn new() -> FileManager {
         FileManager {
             selected_file: None,
