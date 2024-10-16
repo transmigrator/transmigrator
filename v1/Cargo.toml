@@ -10,14 +10,13 @@ license = "BUSL-1.1"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-wasm-bindgen = "0.2.83"
-js-sys = "0.3.60"
-web-sys = { version = "0.3.60", features = [
+wasm-bindgen = "0.2"
+web-sys = { version = "0.3", features = [
+    "Window",
     "Document",
     "Element",
-    "HtmlElement",
-    "Node",
-    "Window",
+    "HtmlInputElement",
+    "HtmlButtonElement",
 ] }
 rand = "0.8.5"
 ring = "0.16.20"
