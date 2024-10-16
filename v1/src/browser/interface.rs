@@ -1,7 +1,44 @@
 // browser/interface.rs
 
 use wasm_bindgen::prelude::*;
+use web_sys::{Document, Window};
 use super::tab::Tab;
+
+#[wasm_bindgen(start)]
+pub fn start() -> Result<(), JsValue> {
+    let window: Window = web_sys::window().expect("no global `window` exists");
+    let document: Document = window.document().expect("should have a document on window");
+
+    // Display loading screen
+    display_loading_screen(&document)?;
+
+    // Initialize the browser interface
+    init_browser_interface(&document)?;
+
+    Ok(())
+}
+
+fn display_loading_screen(document: &Document) -> Result<(), JsValue> {
+    let body = document.body().expect("document should have a body");
+    let loading_screen = document.create_element("div")?;
+    loading_screen.set_inner_html("<svg>...</svg>");
+    loading_screen.set_attribute("style", "height: 100%; background: black;")?;
+    body.append_child(&loading_screen)?;
+
+    // Remove loading screen after 3 seconds
+    let closure = Closure::wrap(Box::new(move || {
+        loading_screen.remove();
+    }) as Box<dyn Fn()>);
+    window.set_timeout_with_callback_and_timeout_and_arguments_0(closure.as_ref().unchecked_ref(), 3000)?;
+    closure.forget();
+
+    Ok(())
+}
+
+fn init_browser_interface(document: &Document) -> Result<(), JsValue> {
+    // Implement address bar, tab management, and file manager initialization here
+    Ok(())
+}
 
 #[wasm_bindgen]
 pub struct BrowserInterface {
