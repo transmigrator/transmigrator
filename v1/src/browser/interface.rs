@@ -1,7 +1,7 @@
 // browser/interface.rs
 
 use wasm_bindgen::prelude::*;
-use web_sys::{window, HtmlInputElement};
+use web_sys::{window, Window};
 use crate::file_manager::FileManager;
 
 #[wasm_bindgen]
@@ -19,7 +19,8 @@ impl Browser {
     }
 
     pub fn start(&self) {
-        let document = window().unwrap().document().unwrap();
+        let window: Window = window().unwrap();
+        let document = window.document().expect("should have a document on window");
         let body = document.body().unwrap();
 
         // Create a full-height div with a black background
@@ -40,11 +41,11 @@ impl Browser {
             loading_div.remove();
         }) as Box<dyn Fn()>);
 
-        window().unwrap().set_timeout_with_callback_and_timeout_and_arguments_0(closure.as_ref().unchecked_ref(), 3000).unwrap();
+        window.set_timeout_with_callback_and_timeout_and_arguments_0(closure.as_ref().unchecked_ref(), 3000).unwrap();
         closure.forget();
     }
 
-    pub fn select_file(&self) -> Result<(), JsValue> {
+    pub fn select_file(&mut self) -> Result<(), JsValue> {
         self.file_manager.select_file()
     }
 
@@ -55,4 +56,8 @@ impl Browser {
     pub fn upload_file(&self) -> Result<(), JsValue> {
         self.file_manager.upload_file()
     }
+}
+
+pub fn start() {
+    // Implementation of the start function
 }
