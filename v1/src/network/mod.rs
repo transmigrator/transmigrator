@@ -2,6 +2,7 @@
 
 use std::collections::VecDeque;
 use rand::seq::SliceRandom;
+use wasm_bindgen::prelude::*;
 
 pub mod proxy_mesh;
 pub mod packet;
@@ -88,5 +89,40 @@ impl ProxyMesh {
         self.recycle_chain(chain);
 
         Ok(())
+    }
+}
+
+#[wasm_bindgen]
+pub struct Network {
+    proxy_mesh: ProxyMesh,
+}
+
+#[wasm_bindgen]
+impl Network {
+    #[wasm_bindgen(constructor)]
+    pub fn new(proxy_list: Vec<String>) -> Network {
+        Network {
+            proxy_mesh: ProxyMesh::new(),
+        }
+    }
+
+    pub fn create_proxy_chain(&mut self) -> Vec<String> {
+        self.proxy_mesh.create_proxy_chain()
+    }
+
+    pub fn encrypt_packet(&self, packet: &[u8]) -> Vec<u8> {
+        self.proxy_mesh.encrypt_packet(packet)
+    }
+
+    pub fn decrypt_packet(&self, packet: &[u8]) -> Vec<u8> {
+        self.proxy_mesh.decrypt_packet(packet)
+    }
+
+    pub fn tunnel_packet(&self, packet: &[u8], chain: Vec<String>) -> Vec<u8> {
+        self.proxy_mesh.tunnel_packet(packet, chain)
+    }
+
+    pub fn doh_query(&self, domain: &str) -> Result<String, JsValue> {
+        self.proxy_mesh.doh_query(domain)
     }
 }
