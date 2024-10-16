@@ -1,8 +1,5 @@
 // src/network/proxy_mesh.rs
 
-use std::collections::VecDeque;
-use rand::seq::SliceRandom;
-use crate::network::packet::Packet;
 use crate::crypto::{encrypt_packet, decrypt_packet};
 
 pub struct ProxyMesh {
