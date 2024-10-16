@@ -3,6 +3,7 @@
 use wasm_bindgen::prelude::*;
 use web_sys::{Document, Window, HtmlInputElement, HtmlElement};
 use super::tabs::Tab;
+use crate::browser::tabs::Tab;
 
 #[wasm_bindgen(start)]
 pub fn start() -> Result<(), JsValue> {
@@ -10,24 +11,16 @@ pub fn start() -> Result<(), JsValue> {
     let document: Document = window.document().expect("should have a document on window");
 
     // Display loading screen
-    display_loading_screen(&document)?;
-
-    // Initialize the browser interface
-    init_browser_interface(&document)?;
-
-    Ok(())
-}
-
-fn display_loading_screen(document: &Document) -> Result<(), JsValue> {
     let body = document.body().expect("document should have a body");
-    let loading_screen = document.create_element("div")?;
-    loading_screen.set_inner_html("<svg>...</svg>");
-    loading_screen.set_attribute("style", "height: 100%; background: black;")?;
-    body.append_child(&loading_screen)?;
+    body.set_inner_html("<div id='loading' style='background-color: black; height: 100vh; display: flex; align-items: center; justify-content: center;'>
+                            <img src='path/to/loading.svg' alt='Loading...' />
+                         </div>");
 
     // Remove loading screen after 3 seconds
     let closure = Closure::wrap(Box::new(move || {
-        loading_screen.remove();
+        let loading_div = document.get_element_by_id("loading").unwrap();
+        loading_div.remove();
+        // Initialize the main interface here
     }) as Box<dyn Fn()>);
     window.set_timeout_with_callback_and_timeout_and_arguments_0(closure.as_ref().unchecked_ref(), 3000)?;
     closure.forget();
@@ -78,4 +71,51 @@ fn load_url(url: &str) {
 pub struct BrowserInterface {
     address_bar: String,
     tabs: Vec<Tab>,
+}
+
+pub struct Browser {
+    tabs: Vec<Tab>,
+    current_tab: usize,
+}
+
+impl Browser {
+    pub fn new() -> Self {
+        Browser {
+            tabs: Vec::new(),
+            current_tab: 0,
+        }
+    }
+
+    pub fn open_tab(&mut self, url: String) {
+        let id = self.tabs.len();
+        let tab = Tab::new(id, url);
+        self.tabs.push(tab);
+        self.current_tab = id;
+    }
+
+    pub fn close_tab(&mut self, id: usize) {
+        self.tabs.retain(|tab| tab.id != id);
+        if self.current_tab == id {
+            self.current_tab = if self.tabs.is_empty() { 0 } else { self.tabs.len() - 1 };
+        }
+    }
+
+    pub fn switch_tab(&mut self, id: usize) {
+        if (id < self.tabs.len()) {
+            self.current_tab = id;
+        }
+    }
+
+    pub fn get_current_tab(&self) -> Option<&Tab> {
+        self.tabs.get(self.current_tab)
+    }
+
+    pub fn render(&self) {
+        if let Some(tab) = self.get_current_tab() {
+            // Render the current tab's content
+            println!("Rendering tab with URL: {}", tab.url);
+        } else {
+            println!("No tabs open.");
+        }
+    }
 }
