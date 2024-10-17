@@ -12,39 +12,48 @@ pub struct ProxyChain {
 }
 
 pub struct ProxyMesh {
-    chains: Vec<ProxyChain>,
-    proxy_queue: Vec<Proxy>,
+    chains: Mutex<Vec<ProxyChain>>,
+    proxy_queue: Mutex<Vec<Proxy>>,
 }
 
 impl ProxyMesh {
     pub fn new() -> Self {
-        ProxyMesh { chains: Vec::new(), proxy_queue: Vec::new() }
+        ProxyMesh { 
+            chains: Mutex::new(Vec::new()), 
+            proxy_queue: Mutex::new(Vec::new()) 
+        }
     }
 
-    pub fn construct_chains(&mut self) {
+    pub fn construct_chains(&self) {
         let proxies = get_proxies();
         let mut rng = rand::thread_rng();
-        self.proxy_queue = proxies.into_iter().map(|p| Proxy { address: p }).collect();
+        let mut proxy_queue = self.proxy_queue.lock().unwrap();
+        *proxy_queue = proxies.into_iter().map(|p| Proxy { address: p }).collect();
 
-        while self.proxy_queue.len() >= 3 {
-            let mut chain_proxies = self.proxy_queue.drain(0..3).collect::<Vec<_>>();
+        let mut chains = self.chains.lock().unwrap();
+        while proxy_queue.len() >= 3 {
+            let mut chain_proxies = proxy_queue.drain(0..3).collect::<Vec<_>>();
             chain_proxies.shuffle(&mut rng);
-            self.chains.push(ProxyChain { proxies: chain_proxies });
+            chains.push(ProxyChain { proxies: chain_proxies });
         }
     }
 
-    pub fn get_next_chain(&mut self) -> Option<ProxyChain> {
-        if self.proxy_queue.len() < 3 {
+    pub fn get_next_chain(&self) -> Option<ProxyChain> {
+        let mut proxy_queue = self.proxy_queue.lock().unwrap();
+        if proxy_queue.len() < 3 {
+            drop(proxy_queue); // Release the lock before calling construct_chains
             self.construct_chains();
+            proxy_queue = self.proxy_queue.lock().unwrap();
         }
 
-        if self.chains.is_empty() {
+        let mut chains = self.chains.lock().unwrap();
+        if chains.is_empty() {
             return None;
         }
 
         let mut rng = rand::thread_rng();
-        let chain = self.chains.remove(0);
-        self.chains.push(chain.clone());
+        let chain = chains.remove(0);
+        chains.push(chain.clone());
         let mut shuffled_chain = chain.clone();
         shuffled_chain.proxies.shuffle(&mut rng);
         Some(shuffled_chain)
