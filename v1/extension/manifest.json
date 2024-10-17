@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "Transmigrator",
   "version": "1.0",
-  "description": "A platform-agnostic tool for secure communications.",
+  "description": "An overlay network in Rust following NIST SP 800-171 standards on safety-critical systems as a WebAssembly extension compatible with major browsers for any OS.",
   "permissions": [
     "storage",
     "activeTab",
