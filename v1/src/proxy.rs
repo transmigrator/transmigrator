@@ -1,71 +1,40 @@
 use rand::seq::SliceRandom;
-use rand::thread_rng;
-use std::collections::VecDeque;
-use crate::packet::Packet;
+use std::sync::Mutex;
+use lazy_static::lazy_static;
 
-pub struct ProxyChain {
-    proxies: Vec<String>,
+#[derive(Clone)]
+pub struct Proxy {
+    address: String,
 }
 
-impl ProxyChain {
-    pub fn new(proxies: Vec<String>) -> Self {
-        ProxyChain { proxies }
-    }
-
-    pub fn add_proxy(&mut self, proxy: String) {
-        self.proxies.push(proxy);
-    }
-
-    pub fn get_proxies(&self) -> &Vec<String> {
-        &self.proxies
-    }
+pub struct ProxyChain {
+    proxies: Vec<Proxy>,
 }
 
 pub struct ProxyMesh {
-    proxies: VecDeque<String>,
+    chains: Vec<ProxyChain>,
 }
 
 impl ProxyMesh {
-    pub fn new(proxies: Vec<String>) -> Self {
-        ProxyMesh {
-            proxies: VecDeque::from(proxies),
-        }
+    pub fn new() -> Self {
+        ProxyMesh { chains: Vec::new() }
     }
 
-    pub fn get_next_chain(&mut self) -> Option<ProxyChain> {
-        if self.proxies.len() < 3 {
-            return None;
-        }
+    pub fn construct_chains(&mut self) {
+        let proxies = get_proxies();
+        let mut rng = rand::thread_rng();
+        let mut proxy_list: Vec<Proxy> = proxies.into_iter().map(|p| Proxy { address: p }).collect();
 
-        let mut rng = thread_rng();
-        let mut selected_proxies = Vec::new();
-        for _ in 0..3 {
-            if let Some(proxy) = self.proxies.pop_front() {
-                selected_proxies.push(proxy);
-            }
-        }
-
-        selected_proxies.shuffle(&mut rng);
-        Some(ProxyChain::new(selected_proxies))
-    }
-
-    pub fn add_proxy(&mut self, proxy: String) {
-        self.proxies.push_back(proxy);
-    }
-
-    pub fn recycle_proxies(&mut self, proxies: Vec<String>) {
-        for proxy in proxies {
-            self.proxies.push_back(proxy);
+        while proxy_list.len() >= 3 {
+            let mut chain_proxies = proxy_list.drain(0..3).collect::<Vec<_>>();
+            chain_proxies.shuffle(&mut rng);
+            self.chains.push(ProxyChain { proxies: chain_proxies });
         }
     }
+}
 
-    pub fn send_packet(&mut self, packet: &mut Packet) {
-        if let Some(mut chain) = self.get_next_chain() {
-            packet.encrypt();
-            // Logic to send packet through the proxies in the chain
-            // For example, simulate sending by printing the proxies
-            println!("Sending packet through proxies: {:?}", chain.get_proxies());
-            packet.decrypt();
-        }
-    }
+fn get_proxies() -> Vec<String> {
+    // This function should fetch the proxies from the utils module
+    // Assuming utils module has a function called get_proxies
+    crate::utils::get_proxies()
 }
