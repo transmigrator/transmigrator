@@ -10,37 +10,43 @@ pub async fn create_tunnel(proxy: &str, target: &str) -> io::Result<()> {
 
     tokio::spawn(async move {
         loop {
-            let (mut inbound, _) = listener.accept().await.unwrap();
-            let proxy = proxy.to_string();
-            let target = target.to_string();
+            match listener.accept().await {
+                Ok((mut inbound, _)) => {
+                    let proxy = proxy.to_string();
+                    let target = target.to_string();
 
-            tokio::spawn(async move {
-                match TcpStream::connect(&proxy).await {
-                    Ok(mut outbound) => {
-                        if outbound.write_all(target.as_bytes()).await.is_ok() {
-                            let (mut ri, mut wi) = inbound.split();
-                            let (mut ro, mut wo) = outbound.split();
+                    tokio::spawn(async move {
+                        match TcpStream::connect(&proxy).await {
+                            Ok(mut outbound) => {
+                                if outbound.write_all(target.as_bytes()).await.is_ok() {
+                                    let (mut ri, mut wi) = inbound.split();
+                                    let (mut ro, mut wo) = outbound.split();
 
-                            let client_to_server = tokio::io::copy(&mut ri, &mut wo);
-                            let server_to_client = tokio::io::copy(&mut ro, &mut wi);
+                                    let client_to_server = tokio::io::copy(&mut ri, &mut wo);
+                                    let server_to_client = tokio::io::copy(&mut ro, &mut wi);
 
-                            tokio::select! {
-                                result = client_to_server => {
-                                    if let Err(e) = result {
-                                        eprintln!("Client to server copy error: {}", e);
+                                    tokio::select! {
+                                        result = client_to_server => {
+                                            if let Err(e) = result {
+                                                eprintln!("Client to server copy error: {}", e);
+                                            }
+                                        },
+                                        result = server_to_client => {
+                                            if let Err(e) = result {
+                                                eprintln!("Server to client copy error: {}", e);
+                                            }
+                                        },
                                     }
-                                },
-                                result = server_to_client => {
-                                    if let Err(e) = result {
-                                        eprintln!("Server to client copy error: {}", e);
-                                    }
-                                },
+                                } else {
+                                    eprintln!("Failed to send target address to proxy");
+                                }
                             }
+                            Err(e) => eprintln!("Failed to connect to proxy: {}", e),
                         }
-                    }
-                    Err(e) => eprintln!("Failed to connect to proxy: {}", e),
+                    });
                 }
-            });
+                Err(e) => eprintln!("Failed to accept connection: {}", e),
+            }
         }
     });
 
