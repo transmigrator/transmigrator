@@ -13,29 +13,35 @@ pub struct ProxyChain {
 
 pub struct ProxyMesh {
     chains: Vec<ProxyChain>,
+    proxy_queue: Vec<Proxy>,
 }
 
 impl ProxyMesh {
     pub fn new() -> Self {
-        ProxyMesh { chains: Vec::new() }
+        ProxyMesh { chains: Vec::new(), proxy_queue: Vec::new() }
     }
 
     pub fn construct_chains(&mut self) {
         let proxies = get_proxies();
         let mut rng = rand::thread_rng();
-        let mut proxy_list: Vec<Proxy> = proxies.into_iter().map(|p| Proxy { address: p }).collect();
+        self.proxy_queue = proxies.into_iter().map(|p| Proxy { address: p }).collect();
 
-        while proxy_list.len() >= 3 {
-            let mut chain_proxies = proxy_list.drain(0..3).collect::<Vec<_>>();
+        while self.proxy_queue.len() >= 3 {
+            let mut chain_proxies = self.proxy_queue.drain(0..3).collect::<Vec<_>>();
             chain_proxies.shuffle(&mut rng);
             self.chains.push(ProxyChain { proxies: chain_proxies });
         }
     }
 
     pub fn get_next_chain(&mut self) -> Option<ProxyChain> {
+        if self.proxy_queue.len() < 3 {
+            self.construct_chains();
+        }
+
         if self.chains.is_empty() {
             return None;
         }
+
         let mut rng = rand::thread_rng();
         let chain = self.chains.remove(0);
         self.chains.push(chain.clone());
