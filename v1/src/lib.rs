@@ -46,7 +46,10 @@ pub fn fetch_proxies(url: &str, callback: Function) {
 pub fn send_packet(data: Vec<u8>, key: Vec<u8>) {
     let mut packet = Packet::new(data, key);
     if let Some(ref mut proxy_mesh) = *PROXY_MESH.lock().unwrap() {
-        proxy_mesh.send_packet(&mut packet);
+        match proxy_mesh.send_packet(&mut packet) {
+            Ok(_) => log::info!("Packet sent successfully"),
+            Err(err) => log::error!("Failed to send packet: {:?}", err),
+        }
     } else {
         log::error!("ProxyMesh is not initialized");
     }
