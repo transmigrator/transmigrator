@@ -14,16 +14,20 @@
     <script type="module">
         import init, { fetch_proxies } from './pkg/transmigrator.js';
 
-        document.getElementById('proxy-form').addEventListener('submit', async (event) => {
-            event.preventDefault();
-            const url = document.getElementById('url').value;
-            try {
-                const proxies = await fetch_proxies(url);
-                displayProxies(proxies);
-            } catch (error) {
-                console.error('Error fetching proxies:', error);
-            }
-        });
+        async function main() {
+            await init();
+            document.getElementById('proxy-form').addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const url = document.getElementById('url').value;
+                try {
+                    fetch_proxies(url, (proxies) => {
+                        displayProxies(proxies);
+                    });
+                } catch (error) {
+                    console.error('Error fetching proxies:', error);
+                }
+            });
+        }
 
         function displayProxies(proxies) {
             const proxyList = document.getElementById('proxy-list');
@@ -35,9 +39,7 @@
             });
         }
 
-        init().then(() => {
-            console.log('Wasm module loaded');
-        });
+        main();
     </script>
 </body>
 </html>
