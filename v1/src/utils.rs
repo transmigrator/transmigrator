@@ -8,6 +8,9 @@ lazy_static! {
 
 pub async fn fetch_proxies(url: &str) -> Result<(), Error> {
     let response = reqwest::get(url).await?;
+    if !response.status().is_success() {
+        return Err(Error::new(reqwest::StatusCode::BAD_REQUEST, "Failed to fetch proxies"));
+    }
     let proxies = response.text().await?;
     let mut proxies_vec = PROXIES.lock().unwrap();
     *proxies_vec = proxies.lines().map(|line| line.to_string()).collect();
@@ -22,4 +25,9 @@ pub fn get_proxies() -> Vec<String> {
 pub fn clear_proxies() {
     let mut proxies_vec = PROXIES.lock().unwrap();
     proxies_vec.clear();
+}
+
+pub fn clear_proxies_at_end_of_session() {
+    // This function should be called at the end of the session to clear the proxies
+    clear_proxies();
 }
