@@ -27,9 +27,10 @@ pub fn fetch_proxies(url: &str, callback: Function) {
     let url = url.to_string();
     spawn_local(async move {
         match fetch_proxies_util(&url).await {
-            Ok(proxies) => {
-                log::info!("Fetched proxies: {:?}", proxies);
-                let proxy_mesh = ProxyMesh::new(proxies);
+            Ok(_) => {
+                log::info!("Fetched proxies successfully");
+                let mut proxy_mesh = ProxyMesh::new();
+                proxy_mesh.construct_chains();
                 *PROXY_MESH.lock().unwrap() = Some(proxy_mesh);
                 // Call the JavaScript callback function to notify that proxies are fetched
                 callback.call0(&JsValue::NULL).unwrap();
