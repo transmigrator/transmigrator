@@ -1,43 +1,28 @@
+mod proxy;
+mod utils;
+
 use wasm_bindgen::prelude::*;
-use wasm_bindgen_futures::JsFuture;
-use web_sys::{Request, Response};
+use wasm_bindgen_futures::spawn_local;
+use web_sys::HtmlInputElement;
 
-pub mod proxy;
-
-#[wasm_bindgen]
-#[derive(Clone)]
-pub struct ProxyChain {
-    proxies: Vec<String>,
+#[wasm_bindgen(start)]
+pub fn main() -> Result<(), JsValue> {
+    // Initialize the console log
+    console_log::init_with_level(log::Level::Debug).unwrap();
+    Ok(())
 }
 
 #[wasm_bindgen]
-impl ProxyChain {
-    pub fn new(proxies: Vec<String>) -> ProxyChain {
-        ProxyChain { proxies }
-    }
-
-    pub fn add_proxy(&mut self, proxy: String) {
-        self.proxies.push(proxy);
-    }
-
-    pub fn get_proxies(&self) -> Vec<String> {
-        self.proxies.clone()
-    }
-}
-
-// Example function to fetch proxies (error handling added)
-#[wasm_bindgen]
-pub async fn fetch_proxies(url: &str) -> Result<JsValue, JsValue> {
-    let window = web_sys::window().ok_or("no global `window` exists")?;
-    let request = Request::new_with_str(url)?;
-
-    let resp_value = JsFuture::from(window.fetch_with_request(&request)).await?;
-    let resp: Response = resp_value.dyn_into()?;
-
-    if !resp.ok() {
-        return Err(JsValue::from_str("Network response was not ok"));
-    }
-
-    let json = JsFuture::from(resp.json()?).await?;
-    Ok(json)
+pub fn fetch_proxies(url: String) {
+    spawn_local(async move {
+        match utils::fetch_proxies(&url).await {
+            Ok(proxies) => {
+                log::info!("Fetched proxies: {:?}", proxies);
+                // Handle the fetched proxies (e.g., store them in ProxyMesh)
+            }
+            Err(err) => {
+                log::error!("Failed to fetch proxies: {:?}", err);
+            }
+        }
+    });
 }
