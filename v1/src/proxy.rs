@@ -1,6 +1,7 @@
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 use std::collections::VecDeque;
+use crate::packet::Packet;
 
 pub struct ProxyChain {
     proxies: Vec<String>,
@@ -55,6 +56,16 @@ impl ProxyMesh {
     pub fn recycle_proxies(&mut self, proxies: Vec<String>) {
         for proxy in proxies {
             self.proxies.push_back(proxy);
+        }
+    }
+
+    pub fn send_packet(&mut self, packet: &mut Packet) {
+        if let Some(mut chain) = self.get_next_chain() {
+            packet.encrypt();
+            // Logic to send packet through the proxies in the chain
+            // For example, simulate sending by printing the proxies
+            println!("Sending packet through proxies: {:?}", chain.get_proxies());
+            packet.decrypt();
         }
     }
 }
