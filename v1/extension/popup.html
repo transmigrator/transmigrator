@@ -10,6 +10,11 @@
         <input type="text" id="url" name="url">
         <button type="submit">Fetch Proxies</button>
     </form>
-    <script src="popup.js"></script>
+    <script type="module">
+        import init from './pkg/transmigrator.js';
+        init().then(() => {
+            console.log('Wasm module loaded');
+        });
+    </script>
 </body>
 </html>
