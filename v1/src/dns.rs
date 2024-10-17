@@ -21,9 +21,12 @@ pub async fn resolve_dns(domain: &str) -> Result<String, DnsError> {
         .json::<Value>()
         .await?;
 
-    if let Some(ip) = response["Answer"][0]["data"].as_str() {
-        Ok(ip.to_string())
-    } else {
-        Err(DnsError::InvalidResponse)
+    if let Some(answers) = response["Answer"].as_array() {
+        for answer in answers {
+            if let Some(ip) = answer["data"].as_str() {
+                return Ok(ip.to_string());
+            }
+        }
     }
+    Err(DnsError::InvalidResponse)
 }
