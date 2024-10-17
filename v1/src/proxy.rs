@@ -31,19 +31,30 @@ impl ProxyMesh {
         }
     }
 
-    pub fn get_next_chain(&mut self) -> ProxyChain {
-        let mut chain_proxies = Vec::new();
+    pub fn get_next_chain(&mut self) -> Option<ProxyChain> {
+        if self.proxies.len() < 3 {
+            return None;
+        }
+
+        let mut rng = thread_rng();
+        let mut selected_proxies = Vec::new();
         for _ in 0..3 {
             if let Some(proxy) = self.proxies.pop_front() {
-                chain_proxies.push(proxy.clone());
-                self.proxies.push_back(proxy);
+                selected_proxies.push(proxy);
             }
         }
-        chain_proxies.shuffle(&mut thread_rng());
-        ProxyChain { proxies: chain_proxies }
+
+        selected_proxies.shuffle(&mut rng);
+        Some(ProxyChain::new(selected_proxies))
     }
 
-    pub fn get_proxies(&self) -> Vec<String> {
-        self.proxies.iter().cloned().collect()
+    pub fn add_proxy(&mut self, proxy: String) {
+        self.proxies.push_back(proxy);
+    }
+
+    pub fn recycle_proxies(&mut self, proxies: Vec<String>) {
+        for proxy in proxies {
+            self.proxies.push_back(proxy);
+        }
     }
 }
