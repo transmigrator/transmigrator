@@ -1,7 +1,6 @@
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 use std::collections::VecDeque;
-use reqwest::Error;
 
 pub struct ProxyChain {
     proxies: Vec<String>,
@@ -46,37 +45,5 @@ impl ProxyMesh {
 
     pub fn get_proxies(&self) -> Vec<String> {
         self.proxies.iter().cloned().collect()
-    }
-
-    pub async fn fetch_proxies(url: &str) -> Result<Vec<String>, Error> {
-        let response = reqwest::get(url).await?;
-        let proxies = response.text().await?;
-        Ok(proxies.lines().map(|line| line.to_string()).collect())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tokio::test]
-    async fn test_fetch_proxies() {
-        let url = "https://example.com/proxies.txt";
-        let proxies = ProxyMesh::fetch_proxies(url).await.unwrap();
-        assert!(!proxies.is_empty());
-    }
-
-    #[test]
-    fn test_proxy_mesh() {
-        let proxies = vec![
-            "192.168.1.1:1080".to_string(),
-            "192.168.1.2:1080".to_string(),
-            "192.168.1.3:1080".to_string(),
-        ];
-
-        let mut proxy_mesh = ProxyMesh::new(proxies);
-
-        let proxy_chain = proxy_mesh.get_next_chain();
-        assert_eq!(proxy_chain.proxies.len(), 3);
     }
 }
