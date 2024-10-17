@@ -11,8 +11,13 @@ pub enum DnsError {
 }
 
 pub async fn resolve_dns(domain: &str) -> Result<String, DnsError> {
+    // Create a new HTTP client
     let client = Client::new();
+    
+    // Construct the DNS query URL
     let url = format!("https://cloudflare-dns.com/dns-query?name={}", domain);
+    
+    // Send the DNS query request
     let response = client
         .get(&url)
         .header("Accept", "application/dns-json")
@@ -20,7 +25,8 @@ pub async fn resolve_dns(domain: &str) -> Result<String, DnsError> {
         .await?
         .json::<Value>()
         .await?;
-
+    
+    // Parse the DNS response
     if let Some(answers) = response["Answer"].as_array() {
         for answer in answers {
             if let Some(ip) = answer["data"].as_str() {
@@ -28,5 +34,7 @@ pub async fn resolve_dns(domain: &str) -> Result<String, DnsError> {
             }
         }
     }
+    
+    // Return an error if the response is invalid
     Err(DnsError::InvalidResponse)
 }
