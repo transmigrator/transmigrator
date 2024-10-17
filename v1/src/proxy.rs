@@ -31,6 +31,18 @@ impl ProxyMesh {
             self.chains.push(ProxyChain { proxies: chain_proxies });
         }
     }
+
+    pub fn get_next_chain(&mut self) -> Option<ProxyChain> {
+        if self.chains.is_empty() {
+            return None;
+        }
+        let mut rng = rand::thread_rng();
+        let chain = self.chains.remove(0);
+        self.chains.push(chain.clone());
+        let mut shuffled_chain = chain.clone();
+        shuffled_chain.proxies.shuffle(&mut rng);
+        Some(shuffled_chain)
+    }
 }
 
 fn get_proxies() -> Vec<String> {
