@@ -11,10 +11,10 @@ lazy_static! {
     static ref PROXIES: Mutex<Vec<String>> = Mutex::new(Vec::new());
 }
 
-pub async fn fetch_proxies_util(url: &str) -> Result<(), Error> {
+pub async fn fetch_proxies_util(url: &str, callback: Function) -> Result<(), Error> {
     let response = reqwest::get(url).await?;
-    if (!response.status().is_success()) {
-        return Err(Error::new(reqwest::StatusCode::BAD_REQUEST, "Failed to fetch proxies"));
+    if !response.status().is_success() {
+        return Err(Error::new(reqwest::StatusCode::BAD_REQUEST, Some("Failed to fetch proxies".to_string())));
     }
     let proxies = response.text().await?;
     let mut proxies_vec = PROXIES.lock().unwrap();
@@ -23,10 +23,10 @@ pub async fn fetch_proxies_util(url: &str) -> Result<(), Error> {
 }
 
 #[wasm_bindgen]
-pub async fn fetch_proxies(url: &str, callback: Function) {
+pub fn fetch_proxies(url: &str, callback: Function) {
     let url = url.to_string();
     spawn_local(async move {
-        match fetch_proxies_util(&url).await {
+        match fetch_proxies_util(&url, callback).await {
             Ok(_) => {
                 log::info!("Fetched proxies successfully");
                 let proxies = get_proxies();
