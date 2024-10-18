@@ -59,6 +59,11 @@ impl ProxyMesh {
         shuffled_chain.proxies.shuffle(&mut rng);
         Some(shuffled_chain)
     }
+
+    pub fn send_packet(&mut self, packet: &mut Packet) -> Result<(), Box<dyn std::error::Error>> {
+        // Implement the logic to send the packet through the proxy chain
+        Ok(())
+    }
 }
 
 fn get_proxies() -> Vec<String> {
