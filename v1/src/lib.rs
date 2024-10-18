@@ -26,7 +26,7 @@ pub fn main() -> Result<(), JsValue> {
 pub fn fetch_proxies(url: &str, callback: Function) {
     let url = url.to_string();
     spawn_local(async move {
-        match fetch_proxies_util(&url, callback).await {
+        match fetch_proxies_util(&url).await {
             Ok(_) => {
                 log::info!("Fetched proxies successfully");
                 let mut proxy_mesh = ProxyMesh::new();
