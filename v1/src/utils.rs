@@ -1,53 +1,65 @@
-use reqwest::Error;
-use std::sync::Mutex;
-use lazy_static::lazy_static;
-use wasm_bindgen::prelude::*;
-use wasm_bindgen::JsValue;
-use js_sys::Function;
-use wasm_bindgen_futures::spawn_local;
+use reqwest::Error as ReqwestError;
+use std::fmt;
+use std::io;
 
-lazy_static! {
-    static ref PROXIES: Mutex<Vec<String>> = Mutex::new(Vec::new());
+#[derive(Debug)]
+pub enum FetchError {
+    Reqwest(ReqwestError),
+    Io(io::Error),
 }
 
-pub async fn fetch_proxies_util(url: &str, callback: Function) -> Result<(), Error> {
-    let response = reqwest::get(url).await?;
-    if !response.status().is_success() {
-        return Err(Error::new(reqwest::ErrorKind::Request, Some("Failed to fetch proxies".to_string())));
-    }
-    let proxies = response.text().await?;
-    let mut proxies_vec = PROXIES.lock().unwrap();
-    *proxies_vec = proxies.lines().map(|line| line.to_string()).collect();
-    let js_proxies = JsValue::from_str(&serde_json::to_string(&*proxies_vec).unwrap());
-    callback.call1(&JsValue::NULL, &js_proxies).unwrap();
-    Ok(())
-}
-
-#[wasm_bindgen]
-pub async fn fetch_proxies(url: &str, callback: Function) {
-    let url = url.to_string();
-    spawn_local(async move {
-        match fetch_proxies_util(&url, callback).await {
-            Ok(_) => {
-                log::info!("Fetched proxies successfully");
-            }
-            Err(err) => {
-                log::error!("Failed to fetch proxies: {:?}", err);
-            }
+impl fmt::Display for FetchError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            FetchError::Reqwest(err) => write!(f, "Reqwest error: {}", err),
+            FetchError::Io(err) => write!(f, "IO error: {}", err),
         }
-    });
+    }
 }
 
-pub fn get_proxies() -> Vec<String> {
-    let proxies_vec = PROXIES.lock().unwrap();
-    proxies_vec.clone()
+impl From<ReqwestError> for FetchError {
+    fn from(err: ReqwestError) -> FetchError {
+        FetchError::Reqwest(err)
+    }
 }
 
-pub fn clear_proxies() {
-    let mut proxies_vec = PROXIES.lock().unwrap();
-    proxies_vec.clear();
+impl From<io::Error> for FetchError {
+    fn from(err: io::Error) -> FetchError {
+        FetchError::Io(err)
+    }
 }
 
-pub fn clear_proxies_at_end_of_session() {
-    clear_proxies();
+pub async fn fetch_proxies_util(url: &str, callback: impl Fn(Vec<String>)) -> Result<(), FetchError> {
+    let response = reqwest::get(url).await?;
+
+    if response.status().is_success() {
+        let proxies: Vec<String> = response.text().await?
+            .lines()
+            .map(|line| line.to_string())
+            .collect();
+        callback(proxies);
+        Ok(())
+    } else {
+        Err(io::Error::new(io::ErrorKind::Other, "Failed to fetch proxies").into())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tokio::runtime::Runtime;
+
+    #[test]
+    fn test_fetch_proxies_util() {
+        let rt = Runtime::new().unwrap();
+        rt.block_on(async {
+            let url = "http://example.com/proxies.txt";
+            let callback = |proxies: Vec<String>| {
+                assert!(!proxies.is_empty());
+            };
+
+            let result = fetch_proxies_util(url, callback).await;
+            assert!(result.is_ok());
+        });
+    }
 }
