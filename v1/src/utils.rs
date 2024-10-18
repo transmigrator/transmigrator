@@ -22,14 +22,14 @@ pub async fn fetch_proxies_util(url: &str) -> Result<(), Error> {
 }
 
 #[wasm_bindgen]
-pub async fn fetch_proxies(url: &str, callback: Function) {
+pub fn fetch_proxies(url: &str, callback: Function) {
     let url = url.to_string();
     spawn_local(async move {
         match fetch_proxies_util(&url).await {
             Ok(_) => {
                 log::info!("Fetched proxies successfully");
                 let proxies = get_proxies();
-                let js_proxies = JsValue::from_str(&serde_json::to_string(&proxies).unwrap()).unwrap();
+                let js_proxies = JsValue::from_str(&serde_json::to_string(&proxies).unwrap());
                 callback.call1(&JsValue::NULL, &js_proxies).unwrap();
             }
             Err(err) => {
