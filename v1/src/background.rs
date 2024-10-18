@@ -1,5 +1,21 @@
 use wasm_bindgen::prelude::*;
-use web_sys::{Request, Response, ResponseInit, Headers, FetchEvent};
+use wasm_bindgen_futures::JsFuture;
+use web_sys::{Request, Headers, FetchEvent, ServiceWorkerGlobalScope};
+
+// Entry point for the WebAssembly module
+#[wasm_bindgen(start)]
+pub fn main() -> Result<(), JsValue> {
+    // Register the fetch event listener
+    let global_scope = js_sys::global().unchecked_into::<ServiceWorkerGlobalScope>();
+    let fetch_event_listener = Closure::wrap(Box::new(move |event: FetchEvent| {
+        handle_fetch(event);
+    }) as Box<dyn FnMut(_)>);
+
+    global_scope.add_event_listener_with_callback("fetch", fetch_event_listener.as_ref().unchecked_ref())?;
+    fetch_event_listener.forget(); // Prevent the closure from being garbage collected
+
+    Ok(())
+}
 
 #[wasm_bindgen]
 pub fn handle_fetch(event: FetchEvent) {
@@ -28,7 +44,7 @@ pub fn handle_fetch(event: FetchEvent) {
     let modified_request = Request::new_with_str_and_init(&proxy_url, &init).unwrap();
 
     let response_promise = web_sys::window().unwrap().fetch_with_request(&modified_request);
-    let response = wasm_bindgen_futures::JsFuture::from(response_promise);
+    let response = JsFuture::from(response_promise);
 
     event.respond_with(response);
 }
