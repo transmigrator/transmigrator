@@ -12,7 +12,7 @@ lazy_static! {
 
 pub async fn fetch_proxies_util(url: &str) -> Result<(), Error> {
     let response = reqwest::get(url).await?;
-    if (!response.status().is_success()) {
+    if !response.status().is_success() {
         return Err(Error::new(reqwest::StatusCode::BAD_REQUEST, "Failed to fetch proxies"));
     }
     let proxies = response.text().await?;
@@ -50,6 +50,5 @@ pub fn clear_proxies() {
 }
 
 pub fn clear_proxies_at_end_of_session() {
-    // This function should be called at the end of the session to clear the proxies
     clear_proxies();
 }
