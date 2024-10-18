@@ -1,6 +1,7 @@
 use rand::seq::SliceRandom;
 use std::sync::Mutex;
 use lazy_static::lazy_static;
+use crate::packet::Packet;
 
 #[derive(Clone)]
 pub struct Proxy {
@@ -61,8 +62,16 @@ impl ProxyMesh {
     }
 
     pub fn send_packet(&mut self, packet: &mut Packet) -> Result<(), Box<dyn std::error::Error>> {
-        // Implement the logic to send the packet through the proxy chain
-        Ok(())
+        if let Some(chain) = self.get_next_chain() {
+            for proxy in chain.proxies {
+                // Implement the logic to send the packet through each proxy in the chain
+                // This is a placeholder for the actual sending logic
+                println!("Sending packet through proxy: {}", proxy.address);
+            }
+            Ok(())
+        } else {
+            Err("No available proxy chain".into())
+        }
     }
 }
 
