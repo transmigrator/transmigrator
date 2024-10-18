@@ -60,7 +60,7 @@ impl ProxyMesh {
         Some(shuffled_chain)
     }
 
-    pub fn send_packet(&mut self, packet: &mut Packet) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn send_packet(&mut self, _packet: &mut Packet) -> Result<(), Box<dyn std::error::Error>> {
         if let Some(chain) = self.get_next_chain() {
             for proxy in chain.proxies {
                 // Implement the logic to send the packet through each proxy in the chain
