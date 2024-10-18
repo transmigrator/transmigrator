@@ -1,81 +1,58 @@
-use rand::seq::SliceRandom;
-use std::sync::Mutex;
-use crate::packet::Packet;
+use std::sync::{Arc, Mutex};
+use std::collections::VecDeque;
 
-#[derive(Clone)]
-pub struct Proxy {
-    address: String,
+pub struct ProxyManager {
+    proxy_queue: Arc<Mutex<VecDeque<String>>>,
 }
 
-#[derive(Clone)]
-pub struct ProxyChain {
-    proxies: Vec<Proxy>,
-}
-
-pub struct ProxyMesh {
-    chains: Mutex<Vec<ProxyChain>>,
-    proxy_queue: Mutex<Vec<Proxy>>,
-}
-
-impl ProxyMesh {
+impl ProxyManager {
     pub fn new() -> Self {
-        ProxyMesh { 
-            chains: Mutex::new(Vec::new()), 
-            proxy_queue: Mutex::new(Vec::new()) 
+        ProxyManager {
+            proxy_queue: Arc::new(Mutex::new(VecDeque::new())),
         }
     }
 
-    pub fn construct_chains(&self) {
-        let proxies = get_proxies();
-        let mut rng = rand::thread_rng();
+    pub fn add_proxy(&self, proxy: String) {
         let mut proxy_queue = self.proxy_queue.lock().unwrap();
-        *proxy_queue = proxies.into_iter().map(|p| Proxy { address: p }).collect();
-
-        let mut chains = self.chains.lock().unwrap();
-        while proxy_queue.len() >= 3 {
-            let mut chain_proxies = proxy_queue.drain(0..3).collect::<Vec<_>>();
-            chain_proxies.shuffle(&mut rng);
-            chains.push(ProxyChain { proxies: chain_proxies });
-        }
+        proxy_queue.push_back(proxy);
     }
 
-    pub fn get_next_chain(&self) -> Option<ProxyChain> {
+    pub fn get_next_proxy(&self) -> Option<String> {
         let mut proxy_queue = self.proxy_queue.lock().unwrap();
-        if proxy_queue.len() < 3 {
-            drop(proxy_queue); // Release the lock before calling construct_chains
-            self.construct_chains();
-            proxy_queue = self.proxy_queue.lock().unwrap();
-        }
-
-        let mut chains = self.chains.lock().unwrap();
-        if chains.is_empty() {
-            return None;
-        }
-
-        let mut rng = rand::thread_rng();
-        let chain = chains.remove(0);
-        chains.push(chain.clone());
-        let mut shuffled_chain = chain.clone();
-        shuffled_chain.proxies.shuffle(&mut rng);
-        Some(shuffled_chain)
+        proxy_queue.pop_front()
     }
 
-    pub fn send_packet(&mut self, _packet: &mut Packet) -> Result<(), Box<dyn std::error::Error>> {
-        if let Some(chain) = self.get_next_chain() {
-            for proxy in chain.proxies {
-                // Implement the logic to send the packet through each proxy in the chain
-                // This is a placeholder for the actual sending logic
-                println!("Sending packet through proxy: {}", proxy.address);
-            }
-            Ok(())
-        } else {
-            Err("No available proxy chain".into())
-        }
+    pub fn refresh_proxies(&self, new_proxies: Vec<String>) {
+        let mut proxy_queue = self.proxy_queue.lock().unwrap();
+        *proxy_queue = VecDeque::from(new_proxies);
     }
 }
 
-fn get_proxies() -> Vec<String> {
-    // This function should fetch the proxies from the utils module
-    // Assuming utils module has a function called get_proxies
-    crate::utils::get_proxies()
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_add_and_get_proxy() {
+        let manager = ProxyManager::new();
+        manager.add_proxy("proxy1".to_string());
+        manager.add_proxy("proxy2".to_string());
+
+        assert_eq!(manager.get_next_proxy(), Some("proxy1".to_string()));
+        assert_eq!(manager.get_next_proxy(), Some("proxy2".to_string()));
+        assert_eq!(manager.get_next_proxy(), None);
+    }
+
+    #[test]
+    fn test_refresh_proxies() {
+        let manager = ProxyManager::new();
+        manager.add_proxy("proxy1".to_string());
+        manager.add_proxy("proxy2".to_string());
+
+        manager.refresh_proxies(vec!["proxy3".to_string(), "proxy4".to_string()]);
+
+        assert_eq!(manager.get_next_proxy(), Some("proxy3".to_string()));
+        assert_eq!(manager.get_next_proxy(), Some("proxy4".to_string()));
+        assert_eq!(manager.get_next_proxy(), None);
+    }
 }
