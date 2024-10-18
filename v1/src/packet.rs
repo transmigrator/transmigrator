@@ -18,13 +18,13 @@ impl Packet {
     }
 
     pub fn encrypt(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        let cipher = Aes256Cbc::new_var(&self.key, &self.iv)?;
+        let cipher = Aes256Cbc::new_from_slices(&self.key, &self.iv)?;
         self.data = cipher.encrypt_vec(&self.data);
         Ok(())
     }
 
     pub fn decrypt(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        let cipher = Aes256Cbc::new_var(&self.key, &self.iv)?;
+        let cipher = Aes256Cbc::new_from_slices(&self.key, &self.iv)?;
         self.data = cipher.decrypt_vec(&self.data)?;
         Ok(())
     }
