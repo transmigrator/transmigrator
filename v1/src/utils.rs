@@ -5,6 +5,7 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsValue;
 use js_sys::Function;
 use wasm_bindgen_futures::spawn_local;
+use serde::Serialize;
 
 lazy_static! {
     static ref PROXIES: Mutex<Vec<String>> = Mutex::new(Vec::new());
@@ -13,7 +14,7 @@ lazy_static! {
 pub async fn fetch_proxies_util(url: &str) -> Result<(), Error> {
     let response = reqwest::get(url).await?;
     if (!response.status().is_success()) {
-        return Err(Error::new(reqwest::ErrorKind::Request, Some("Failed to fetch proxies")));
+        return Err(Error::new(reqwest::StatusCode::BAD_REQUEST, "Failed to fetch proxies"));
     }
     let proxies = response.text().await?;
     let mut proxies_vec = PROXIES.lock().unwrap();
