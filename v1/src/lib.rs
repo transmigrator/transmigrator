@@ -1,39 +1,36 @@
-mod proxy;
-mod utils;
-mod packet;
-
-use wasm_bindgen::prelude::*;
-use wasm_bindgen_futures::spawn_local;
-use proxy::ProxyMesh;
+use reqwest::Error;
 use std::sync::Mutex;
 use lazy_static::lazy_static;
-use crate::utils::fetch_proxies as fetch_proxies_util;
+use wasm_bindgen::prelude::*;
+use wasm_bindgen::JsValue;
 use js_sys::Function;
-use packet::Packet;
+use wasm_bindgen_futures::spawn_local;
 
 lazy_static! {
-    static ref PROXY_MESH: Mutex<Option<ProxyMesh>> = Mutex::new(None);
+    static ref PROXIES: Mutex<Vec<String>> = Mutex::new(Vec::new());
 }
 
-#[wasm_bindgen(start)]
-pub fn main() -> Result<(), JsValue> {
-    // Initialize the console log
-    console_log::init_with_level(log::Level::Debug).unwrap();
+pub async fn fetch_proxies_util(url: &str) -> Result<(), Error> {
+    let response = reqwest::get(url).await?;
+    if (!response.status().is_success()) {
+        return Err(Error::new(reqwest::StatusCode::BAD_REQUEST, "Failed to fetch proxies"));
+    }
+    let proxies = response.text().await?;
+    let mut proxies_vec = PROXIES.lock().unwrap();
+    *proxies_vec = proxies.lines().map(|line| line.to_string()).collect();
     Ok(())
 }
 
 #[wasm_bindgen]
-pub fn fetch_proxies(url: &str, callback: Function) {
+pub async fn fetch_proxies(url: &str, callback: Function) {
     let url = url.to_string();
     spawn_local(async move {
         match fetch_proxies_util(&url).await {
             Ok(_) => {
                 log::info!("Fetched proxies successfully");
-                let mut proxy_mesh = ProxyMesh::new();
-                proxy_mesh.construct_chains();
-                *PROXY_MESH.lock().unwrap() = Some(proxy_mesh);
-                // Call the JavaScript callback function to notify that proxies are fetched
-                callback.call0(&JsValue::NULL).unwrap();
+                let proxies = get_proxies();
+                let js_proxies = JsValue::from_serde(&proxies).unwrap();
+                callback.call1(&JsValue::NULL, &js_proxies).unwrap();
             }
             Err(err) => {
                 log::error!("Failed to fetch proxies: {:?}", err);
@@ -42,15 +39,16 @@ pub fn fetch_proxies(url: &str, callback: Function) {
     });
 }
 
-#[wasm_bindgen]
-pub fn send_packet(data: Vec<u8>, key: Vec<u8>) {
-    let mut packet = Packet::new(data, key);
-    if let Some(ref mut proxy_mesh) = *PROXY_MESH.lock().unwrap() {
-        match proxy_mesh.send_packet(&mut packet) {
-            Ok(_) => log::info!("Packet sent successfully"),
-            Err(err) => log::error!("Failed to send packet: {:?}", err),
-        }
-    } else {
-        log::error!("ProxyMesh is not initialized");
-    }
+pub fn get_proxies() -> Vec<String> {
+    let proxies_vec = PROXIES.lock().unwrap();
+    proxies_vec.clone()
+}
+
+pub fn clear_proxies() {
+    let mut proxies_vec = PROXIES.lock().unwrap();
+    proxies_vec.clear();
+}
+
+pub fn clear_proxies_at_end_of_session() {
+    clear_proxies();
 }
