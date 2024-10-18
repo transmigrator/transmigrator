@@ -5,13 +5,12 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsValue;
 use js_sys::Function;
 use wasm_bindgen_futures::spawn_local;
-use serde::Serialize;
 
 lazy_static! {
     static ref PROXIES: Mutex<Vec<String>> = Mutex::new(Vec::new());
 }
 
-pub async fn fetch_proxies_util(url: &str, callback: Function) -> Result<(), Error> {
+pub async fn fetch_proxies_util(url: &str) -> Result<(), Error> {
     let response = reqwest::get(url).await?;
     if !response.status().is_success() {
         return Err(Error::new(reqwest::ErrorKind::Request, Some("Failed to fetch proxies".to_string())));
@@ -26,11 +25,11 @@ pub async fn fetch_proxies_util(url: &str, callback: Function) -> Result<(), Err
 pub async fn fetch_proxies(url: &str, callback: Function) {
     let url = url.to_string();
     spawn_local(async move {
-        match fetch_proxies_util(&url, callback).await {
+        match fetch_proxies_util(&url).await {
             Ok(_) => {
                 log::info!("Fetched proxies successfully");
                 let proxies = get_proxies();
-                let js_proxies = JsValue::from_serde(&proxies).unwrap();
+                let js_proxies = JsValue::from_str(&serde_json::to_string(&proxies).unwrap()).unwrap();
                 callback.call1(&JsValue::NULL, &js_proxies).unwrap();
             }
             Err(err) => {
