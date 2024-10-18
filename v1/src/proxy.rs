@@ -7,6 +7,7 @@ pub struct Proxy {
     address: String,
 }
 
+#[derive(Clone)]
 pub struct ProxyChain {
     proxies: Vec<Proxy>,
 }
