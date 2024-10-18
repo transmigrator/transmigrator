@@ -1,6 +1,6 @@
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::JsFuture;
-use web_sys::{Request, Headers, FetchEvent, ServiceWorkerGlobalScope};
+use web_sys::{Request, Headers, FetchEvent, ServiceWorkerGlobalScope, Response};
 
 // Entry point for the WebAssembly module
 #[wasm_bindgen(start)]
@@ -35,16 +35,27 @@ pub fn handle_fetch(event: FetchEvent) {
     init.cache(request.cache().as_str());
 
     let headers = Headers::new().unwrap();
-    for header in request.headers().entries() {
+    let header_entries = js_sys::try_iter(&request.headers()).unwrap().unwrap();
+    for header in header_entries {
         let header = header.unwrap();
-        headers.append(&header[0], &header[1]).unwrap();
+        let header_array = js_sys::Array::from(&header);
+        headers.append(&header_array.get(0).as_string().unwrap(), &header_array.get(1).as_string().unwrap()).unwrap();
     }
     init.headers(&headers.into());
 
     let modified_request = Request::new_with_str_and_init(&proxy_url, &init).unwrap();
 
     let response_promise = web_sys::window().unwrap().fetch_with_request(&modified_request);
-    let response = JsFuture::from(response_promise);
+    let future = JsFuture::from(response_promise);
 
-    event.respond_with(response);
+    wasm_bindgen_futures::spawn_local(async move {
+        match future.await {
+            Ok(response) => event.respond_with(Promise::resolve(&response)),
+            Err(err) => {
+                let error_response = Response::error().unwrap();
+                event.respond_with(Promise::resolve(&error_response));
+                web_sys::console::error_1(&err);
+            }
+        }
+    });
 }
