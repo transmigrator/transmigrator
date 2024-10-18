@@ -12,7 +12,7 @@ lazy_static! {
 
 pub async fn fetch_proxies_util(url: &str, callback: Function) -> Result<(), Error> {
     let response = reqwest::get(url).await?;
-    if !response.status().is_success() {
+    if (!response.status().is_success()) {
         return Err(Error::new(reqwest::ErrorKind::Request, Some("Failed to fetch proxies".to_string())));
     }
     let proxies = response.text().await?;
@@ -24,7 +24,7 @@ pub async fn fetch_proxies_util(url: &str, callback: Function) -> Result<(), Err
 }
 
 #[wasm_bindgen]
-pub fn fetch_proxies(url: &str, callback: Function) {
+pub async fn fetch_proxies(url: &str, callback: Function) {
     let url = url.to_string();
     spawn_local(async move {
         match fetch_proxies_util(&url, callback).await {
