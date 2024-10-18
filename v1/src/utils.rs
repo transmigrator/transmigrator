@@ -10,7 +10,7 @@ lazy_static! {
     static ref PROXIES: Mutex<Vec<String>> = Mutex::new(Vec::new());
 }
 
-pub async fn fetch_proxies_util(url: &str) -> Result<(), Error> {
+pub async fn fetch_proxies_util(url: &str, callback: Function) -> Result<(), Error> {
     let response = reqwest::get(url).await?;
     if !response.status().is_success() {
         return Err(Error::new(reqwest::ErrorKind::Request, Some("Failed to fetch proxies".to_string())));
@@ -18,6 +18,8 @@ pub async fn fetch_proxies_util(url: &str) -> Result<(), Error> {
     let proxies = response.text().await?;
     let mut proxies_vec = PROXIES.lock().unwrap();
     *proxies_vec = proxies.lines().map(|line| line.to_string()).collect();
+    let js_proxies = JsValue::from_str(&serde_json::to_string(&*proxies_vec).unwrap());
+    callback.call1(&JsValue::NULL, &js_proxies).unwrap();
     Ok(())
 }
 
@@ -25,12 +27,9 @@ pub async fn fetch_proxies_util(url: &str) -> Result<(), Error> {
 pub fn fetch_proxies(url: &str, callback: Function) {
     let url = url.to_string();
     spawn_local(async move {
-        match fetch_proxies_util(&url).await {
+        match fetch_proxies_util(&url, callback).await {
             Ok(_) => {
                 log::info!("Fetched proxies successfully");
-                let proxies = get_proxies();
-                let js_proxies = JsValue::from_str(&serde_json::to_string(&proxies).unwrap());
-                callback.call1(&JsValue::NULL, &js_proxies).unwrap();
             }
             Err(err) => {
                 log::error!("Failed to fetch proxies: {:?}", err);
