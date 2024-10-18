@@ -1,56 +1,67 @@
-mod proxy;
-mod utils;
-mod packet;
+use reqwest::Error as ReqwestError;
+use std::fmt;
+use std::io;
 
-use wasm_bindgen::prelude::*;
-use wasm_bindgen_futures::spawn_local;
-use proxy::ProxyMesh;
-use std::sync::Mutex;
-use lazy_static::lazy_static;
-use crate::utils::fetch_proxies as fetch_proxies_util;
-use js_sys::Function;
-use packet::Packet;
-
-lazy_static! {
-    static ref PROXY_MESH: Mutex<Option<ProxyMesh>> = Mutex::new(None);
+#[derive(Debug)]
+pub enum FetchError {
+    Reqwest(ReqwestError),
+    Io(io::Error),
 }
 
-#[wasm_bindgen(start)]
-pub fn main() -> Result<(), JsValue> {
-    // Initialize the console log
-    console_log::init_with_level(log::Level::Debug).unwrap();
-    Ok(())
-}
-
-#[wasm_bindgen]
-pub fn fetch_proxies(url: &str, callback: Function) {
-    let url = url.to_string();
-    spawn_local(async move {
-        match fetch_proxies_util(&url, callback).await {
-            Ok(_) => {
-                log::info!("Fetched proxies successfully");
-                let mut proxy_mesh = ProxyMesh::new();
-                proxy_mesh.construct_chains();
-                *PROXY_MESH.lock().unwrap() = Some(proxy_mesh);
-                // Call the JavaScript callback function to notify that proxies are fetched
-                callback.call0(&JsValue::NULL).unwrap();
-            }
-            Err(err) => {
-                log::error!("Failed to fetch proxies: {:?}", err);
-            }
+impl fmt::Display for FetchError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            FetchError::Reqwest(err) => write!(f, "Reqwest error: {}", err),
+            FetchError::Io(err) => write!(f, "IO error: {}", err),
         }
-    });
+    }
 }
 
-#[wasm_bindgen]
-pub fn send_packet(data: Vec<u8>, key: Vec<u8>) {
-    let mut packet = Packet::new(data, key);
-    if let Some(ref mut proxy_mesh) = *PROXY_MESH.lock().unwrap() {
-        match proxy_mesh.send_packet(&mut packet) {
-            Ok(_) => log::info!("Packet sent successfully"),
-            Err(err) => log::error!("Failed to send packet: {:?}", err),
-        }
+impl std::error::Error for FetchError {}
+
+impl From<ReqwestError> for FetchError {
+    fn from(err: ReqwestError) -> FetchError {
+        FetchError::Reqwest(err)
+    }
+}
+
+impl From<io::Error> for FetchError {
+    fn from(err: io::Error) -> FetchError {
+        FetchError::Io(err)
+    }
+}
+
+pub async fn fetch_proxies_util(url: &str, callback: impl Fn(Vec<String>)) -> Result<(), FetchError> {
+    let response = reqwest::get(url).await?;
+
+    if response.status().is_success() {
+        let proxies: Vec<String> = response.text().await?
+            .lines()
+            .map(|line| line.to_string())
+            .collect();
+        callback(proxies);
+        Ok(())
     } else {
-        log::error!("ProxyMesh is not initialized");
+        Err(io::Error::new(io::ErrorKind::Other, "Failed to fetch proxies").into())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tokio::runtime::Runtime;
+
+    #[test]
+    fn test_fetch_proxies_util() {
+        let rt = Runtime::new().unwrap();
+        rt.block_on(async {
+            let url = "http://example.com/proxies.txt";
+            let callback = |proxies: Vec<String>| {
+                assert!(!proxies.is_empty());
+            };
+
+            let result = fetch_proxies_util(url, callback).await;
+            assert!(result.is_ok());
+        });
     }
 }
