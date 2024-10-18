@@ -12,7 +12,7 @@ lazy_static! {
 
 pub async fn fetch_proxies_util(url: &str, callback: Function) -> Result<(), Error> {
     let response = reqwest::get(url).await?;
-    if (!response.status().is_success()) {
+    if !response.status().is_success() {
         return Err(Error::new(reqwest::ErrorKind::Request, Some("Failed to fetch proxies".to_string())));
     }
     let proxies = response.text().await?;
