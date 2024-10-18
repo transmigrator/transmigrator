@@ -1,8 +1,8 @@
 use wasm_bindgen::prelude::*;
-use web_sys::{Request, Response, ResponseInit, Headers};
+use web_sys::{Request, Response, ResponseInit, Headers, FetchEvent};
 
 #[wasm_bindgen]
-pub fn handle_fetch(event: web_sys::FetchEvent) {
+pub fn handle_fetch(event: FetchEvent) {
     let request = event.request();
     let url = request.url();
 
