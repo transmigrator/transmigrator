@@ -42,6 +42,10 @@ impl ProxyManager {
             }
         }
         proxies.shuffle(&mut rand::thread_rng());
+        // Re-add proxies to the end of the queue to ensure they are reused only after all have been used
+        for proxy in &proxies {
+            proxy_queue.push_back(proxy.clone());
+        }
         Some(proxies)
     }
 
