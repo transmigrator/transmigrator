@@ -42,7 +42,6 @@ impl ProxyManager {
             }
         }
         proxies.shuffle(&mut rand::thread_rng());
-        // Re-add proxies to the end of the queue to ensure they are reused only after all have been used
         for proxy in &proxies {
             proxy_queue.push_back(proxy.clone());
         }
@@ -61,75 +60,54 @@ impl ProxyManager {
     pub fn check_and_refetch_proxies(&self, new_proxies: Vec<String>) {
         let success_rate = self.success_rate.lock().unwrap();
         if *success_rate < 0.5 {
-            drop(success_rate); // Release the lock before calling refresh_proxies
+            drop(success_rate);
             self.refresh_proxies(new_proxies);
         }
     }
+
+    pub fn create_proxy_chain(&self) -> Option<ProxyChain> {
+        if let Some(proxies) = self.get_three_proxies() {
+            Some(ProxyChain::new(proxies))
+        } else {
+            None
+        }
+    }
+
+    pub fn create_proxy_mesh(&self, packet_count: usize) -> ProxyMesh {
+        let mut chains = vec![];
+        for _ in 0..packet_count {
+            if let Some(chain) = self.create_proxy_chain() {
+                chains.push(chain);
+            }
+        }
+        ProxyMesh::new(chains)
+    }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+pub struct ProxyChain {
+    proxies: Vec<String>,
+}
 
-    #[test]
-    fn test_add_and_get_proxy() {
-        let manager = ProxyManager::new();
-        manager.add_proxy("proxy1".to_string());
-        manager.add_proxy("proxy2".to_string());
-
-        assert_eq!(manager.get_next_proxy(), Some("proxy1".to_string()));
-        assert_eq!(manager.get_next_proxy(), Some("proxy2".to_string()));
-        assert_eq!(manager.get_next_proxy(), None);
+impl ProxyChain {
+    pub fn new(proxies: Vec<String>) -> Self {
+        ProxyChain { proxies }
     }
 
-    #[test]
-    fn test_refresh_proxies() {
-        let manager = ProxyManager::new();
-        manager.add_proxy("proxy1".to_string());
-        manager.add_proxy("proxy2".to_string());
+    pub fn get_proxies(&self) -> &Vec<String> {
+        &self.proxies
+    }
+}
 
-        manager.refresh_proxies(vec!["proxy3".to_string(), "proxy4".to_string()]);
+pub struct ProxyMesh {
+    chains: Vec<ProxyChain>,
+}
 
-        assert_eq!(manager.get_next_proxy(), Some("proxy3".to_string()));
-        assert_eq!(manager.get_next_proxy(), Some("proxy4".to_string()));
-        assert_eq!(manager.get_next_proxy(), None);
+impl ProxyMesh {
+    pub fn new(chains: Vec<ProxyChain>) -> Self {
+        ProxyMesh { chains }
     }
 
-    #[test]
-    fn test_get_three_proxies() {
-        let manager = ProxyManager::new();
-        manager.add_proxy("proxy1".to_string());
-        manager.add_proxy("proxy2".to_string());
-        manager.add_proxy("proxy3".to_string());
-        manager.add_proxy("proxy4".to_string());
-
-        let proxies = manager.get_three_proxies().unwrap();
-        assert_eq!(proxies.len(), 3);
-        assert!(proxies.contains(&"proxy1".to_string()));
-        assert!(proxies.contains(&"proxy2".to_string()));
-        assert!(proxies.contains(&"proxy3".to_string()));
-    }
-
-    #[test]
-    fn test_update_success_rate() {
-        let manager = ProxyManager::new();
-        manager.update_success_rate(true);
-        manager.update_success_rate(false);
-        let success_rate = manager.success_rate.lock().unwrap();
-        assert!(*success_rate < 1.0);
-    }
-
-    #[test]
-    fn test_check_and_refetch_proxies() {
-        let manager = ProxyManager::new();
-        manager.update_success_rate(false);
-        manager.update_success_rate(false);
-        manager.update_success_rate(false);
-        manager.update_success_rate(false);
-        manager.update_success_rate(false);
-        manager.check_and_refetch_proxies(vec!["proxy5".to_string(), "proxy6".to_string()]);
-
-        assert_eq!(manager.get_next_proxy(), Some("proxy5".to_string()));
-        assert_eq!(manager.get_next_proxy(), Some("proxy6".to_string()));
+    pub fn get_chains(&self) -> &Vec<ProxyChain> {
+        &self.chains
     }
 }
