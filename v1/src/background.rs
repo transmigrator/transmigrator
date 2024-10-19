@@ -1,9 +1,12 @@
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::JsFuture;
-use web_sys::{Request, Headers, FetchEvent, ServiceWorkerGlobalScope, Response};
+use web_sys::{Request, Headers, Response};
 use js_sys::{Promise, Array};
 use std::sync::{Arc, Mutex};
 use crate::proxy::ProxyManager; // Import the ProxyManager
+use rand::Rng;
+use aes_gcm::Aes256Gcm; // Or any other cryptographic library
+use aes_gcm::aead::{Aead, NewAead, generic_array::GenericArray};
 
 // Initialize the ProxyManager
 lazy_static::lazy_static! {
@@ -13,72 +16,87 @@ lazy_static::lazy_static! {
 // Entry point for the WebAssembly module
 #[wasm_bindgen(start)]
 pub fn main() -> Result<(), JsValue> {
-    // Register the fetch event listener
-    let global_scope = js_sys::global().unchecked_into::<ServiceWorkerGlobalScope>();
-    let fetch_event_listener = Closure::wrap(Box::new(move |event: FetchEvent| {
-        handle_fetch(event);
-    }) as Box<dyn FnMut(_)>);
-
-    global_scope.add_event_listener_with_callback("fetch", fetch_event_listener.as_ref().unchecked_ref())?;
-    fetch_event_listener.forget(); // Prevent the closure from being garbage collected
-
-    Ok(())
-}
-
-#[wasm_bindgen]
-pub fn handle_fetch(event: FetchEvent) {
-    let request = event.request();
-    let url = request.url();
-
-    // Example proxy list (this should be dynamically fetched)
+    // Initialize the proxy list (this should be dynamically fetched)
     let proxies = vec![
         "http://proxy1:port".to_string(),
         "http://proxy2:port".to_string(),
         "http://proxy3:port".to_string(),
         "http://proxy4:port".to_string(),
     ];
+    PROXY_MANAGER.refresh_proxies(proxies);
 
+    Ok(())
+}
+
+#[wasm_bindgen]
+pub async fn handle_fetch(url: String, method: String, headers: Vec<(String, String)>, body: Vec<u8>) -> Result<JsValue, JsValue> {
     // Refresh proxies if needed
+    let proxies = vec![
+        "http://proxy1:port".to_string(),
+        "http://proxy2:port".to_string(),
+        "http://proxy3:port".to_string(),
+        "http://proxy4:port".to_string(),
+    ];
     PROXY_MANAGER.check_and_refetch_proxies(proxies);
 
     if let Some(proxy_chain) = PROXY_MANAGER.get_three_proxies() {
         let proxy_url = format!("{}?target={}", proxy_chain[0], url);
         let mut init = web_sys::RequestInit::new();
-        init.method(request.method().as_str());
+        init.method(&method);
         init.mode(web_sys::RequestMode::Cors);
         init.credentials(web_sys::RequestCredentials::SameOrigin);
         init.redirect(web_sys::RequestRedirect::Follow);
-        init.referrer(request.referrer().as_str());
-        init.referrer_policy(request.referrer_policy().as_str());
-        init.integrity(request.integrity().as_str());
-        init.cache(request.cache().as_str());
 
-        let headers = Headers::new().unwrap();
-        let header_entries = js_sys::try_iter(&request.headers()).unwrap().unwrap();
-        for header in header_entries {
-            let header = header.unwrap();
-            let header_array = Array::from(&header);
-            headers.append(&header_array.get(0).as_string().unwrap(), &header_array.get(1).as_string().unwrap()).unwrap();
+        let headers_obj = web_sys::Headers::new().unwrap();
+        for (key, value) in headers {
+            headers_obj.append(&key, &value).unwrap();
         }
-        init.headers(&headers.into());
+        init.headers(&headers_obj.into());
 
-        let modified_request = Request::new_with_str_and_init(&proxy_url, &init).unwrap();
+        // Encrypt the body
+        let key = generate_random_key();
+        let nonce = generate_random_nonce();
+        let cipher = Aes256Gcm::new(GenericArray::from_slice(&key));
+        let encrypted_body = cipher.encrypt(GenericArray::from_slice(&nonce), body.as_ref()).expect("encryption failure!");
 
-        let response_promise = web_sys::window().unwrap().fetch_with_request(&modified_request);
-        let future = JsFuture::from(response_promise);
+        // Split the encrypted body into 1280-byte packets
+        let packets = split_into_packets(&encrypted_body, 1280);
 
-        wasm_bindgen_futures::spawn_local(async move {
-            match future.await {
-                Ok(response) => event.respond_with(Promise::resolve(&response)),
-                Err(err) => {
-                    let error_response = Response::error().unwrap();
-                    event.respond_with(Promise::resolve(&error_response));
-                    web_sys::console::error_1(&err);
+        for packet in packets {
+            let modified_request = Request::new_with_str_and_init(&proxy_url, &init).unwrap();
+            modified_request.body(Some(&js_sys::Uint8Array::from(packet.as_slice())));
+
+            let response_promise = web_sys::window().unwrap().fetch_with_request(&modified_request);
+            let future = JsFuture::from(response_promise);
+
+            wasm_bindgen_futures::spawn_local(async move {
+                match future.await {
+                    Ok(response) => {
+                        // Handle the response
+                    },
+                    Err(err) => {
+                        web_sys::console::error_1(&err);
+                    }
                 }
-            }
-        });
+            });
+        }
+
+        Ok(JsValue::from_str("Request sent through proxy chain"))
     } else {
-        let error_response = Response::error().unwrap();
-        event.respond_with(Promise::resolve(&error_response));
+        Err(JsValue::from_str("No available proxies"))
     }
+}
+
+fn generate_random_key() -> Vec<u8> {
+    let mut rng = rand::thread_rng();
+    (0..32).map(|_| rng.gen()).collect()
+}
+
+fn generate_random_nonce() -> Vec<u8> {
+    let mut rng = rand::thread_rng();
+    (0..12).map(|_| rng.gen()).collect()
+}
+
+fn split_into_packets(data: &[u8], packet_size: usize) -> Vec<Vec<u8>> {
+    data.chunks(packet_size).map(|chunk| chunk.to_vec()).collect()
 }
