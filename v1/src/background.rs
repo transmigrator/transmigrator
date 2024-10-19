@@ -3,47 +3,11 @@ use wasm_bindgen_futures::JsFuture;
 use web_sys::{Request, Headers, FetchEvent, ServiceWorkerGlobalScope, Response};
 use js_sys::{Promise, Array};
 use std::sync::{Arc, Mutex};
-use rand::seq::SliceRandom;
+use crate::proxy::ProxyManager; // Import the ProxyManager
 
-struct ProxyChain {
-    proxies: Vec<String>,
-}
-
-impl ProxyChain {
-    pub fn new(proxies: Vec<String>) -> Self {
-        ProxyChain { proxies }
-    }
-
-    pub fn get_proxies(&self) -> &Vec<String> {
-        &self.proxies
-    }
-}
-
-struct ProxyMesh {
-    proxy_queue: Arc<Mutex<Vec<String>>>,
-}
-
-impl ProxyMesh {
-    pub fn new(proxies: Vec<String>) -> Self {
-        ProxyMesh {
-            proxy_queue: Arc::new(Mutex::new(proxies)),
-        }
-    }
-
-    pub fn get_next_chain(&self) -> Option<ProxyChain> {
-        let mut proxy_queue = self.proxy_queue.lock().unwrap();
-        if proxy_queue.len() < 3 {
-            return None;
-        }
-        let mut proxies = vec![];
-        for _ in 0..3 {
-            if let Some(proxy) = proxy_queue.pop() {
-                proxies.push(proxy);
-            }
-        }
-        proxies.shuffle(&mut rand::thread_rng());
-        Some(ProxyChain::new(proxies))
-    }
+// Initialize the ProxyManager
+lazy_static::lazy_static! {
+    static ref PROXY_MANAGER: Arc<ProxyManager> = Arc::new(ProxyManager::new());
 }
 
 // Entry point for the WebAssembly module
@@ -66,7 +30,7 @@ pub fn handle_fetch(event: FetchEvent) {
     let request = event.request();
     let url = request.url();
 
-    // Example proxy list
+    // Example proxy list (this should be dynamically fetched)
     let proxies = vec![
         "http://proxy1:port".to_string(),
         "http://proxy2:port".to_string(),
@@ -74,9 +38,11 @@ pub fn handle_fetch(event: FetchEvent) {
         "http://proxy4:port".to_string(),
     ];
 
-    let proxy_mesh = ProxyMesh::new(proxies);
-    if let Some(proxy_chain) = proxy_mesh.get_next_chain() {
-        let proxy_url = format!("{}?target={}", proxy_chain.get_proxies()[0], url);
+    // Refresh proxies if needed
+    PROXY_MANAGER.check_and_refetch_proxies(proxies);
+
+    if let Some(proxy_chain) = PROXY_MANAGER.get_three_proxies() {
+        let proxy_url = format!("{}?target={}", proxy_chain[0], url);
         let mut init = web_sys::RequestInit::new();
         init.method(request.method().as_str());
         init.mode(web_sys::RequestMode::Cors);
