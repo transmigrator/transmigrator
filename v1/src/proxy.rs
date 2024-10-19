@@ -4,12 +4,14 @@ use rand::seq::SliceRandom;
 
 pub struct ProxyManager {
     proxy_queue: Arc<Mutex<VecDeque<String>>>,
+    success_rate: Arc<Mutex<f32>>,
 }
 
 impl ProxyManager {
     pub fn new() -> Self {
         ProxyManager {
             proxy_queue: Arc::new(Mutex::new(VecDeque::new())),
+            success_rate: Arc::new(Mutex::new(1.0)),
         }
     }
 
@@ -41,6 +43,23 @@ impl ProxyManager {
         }
         proxies.shuffle(&mut rand::thread_rng());
         Some(proxies)
+    }
+
+    pub fn update_success_rate(&self, success: bool) {
+        let mut success_rate = self.success_rate.lock().unwrap();
+        if success {
+            *success_rate = (*success_rate * 0.9) + 0.1;
+        } else {
+            *success_rate = (*success_rate * 0.9);
+        }
+    }
+
+    pub fn check_and_refetch_proxies(&self, new_proxies: Vec<String>) {
+        let success_rate = self.success_rate.lock().unwrap();
+        if *success_rate < 0.5 {
+            drop(success_rate); // Release the lock before calling refresh_proxies
+            self.refresh_proxies(new_proxies);
+        }
     }
 }
 
@@ -85,5 +104,28 @@ mod tests {
         assert!(proxies.contains(&"proxy1".to_string()));
         assert!(proxies.contains(&"proxy2".to_string()));
         assert!(proxies.contains(&"proxy3".to_string()));
+    }
+
+    #[test]
+    fn test_update_success_rate() {
+        let manager = ProxyManager::new();
+        manager.update_success_rate(true);
+        manager.update_success_rate(false);
+        let success_rate = manager.success_rate.lock().unwrap();
+        assert!(*success_rate < 1.0);
+    }
+
+    #[test]
+    fn test_check_and_refetch_proxies() {
+        let manager = ProxyManager::new();
+        manager.update_success_rate(false);
+        manager.update_success_rate(false);
+        manager.update_success_rate(false);
+        manager.update_success_rate(false);
+        manager.update_success_rate(false);
+        manager.check_and_refetch_proxies(vec!["proxy5".to_string(), "proxy6".to_string()]);
+
+        assert_eq!(manager.get_next_proxy(), Some("proxy5".to_string()));
+        assert_eq!(manager.get_next_proxy(), Some("proxy6".to_string()));
     }
 }
