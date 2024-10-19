@@ -1,5 +1,6 @@
 use std::sync::{Arc, Mutex};
 use std::collections::VecDeque;
+use rand::seq::SliceRandom;
 
 pub struct ProxyManager {
     proxy_queue: Arc<Mutex<VecDeque<String>>>,
@@ -25,6 +26,21 @@ impl ProxyManager {
     pub fn refresh_proxies(&self, new_proxies: Vec<String>) {
         let mut proxy_queue = self.proxy_queue.lock().unwrap();
         *proxy_queue = VecDeque::from(new_proxies);
+    }
+
+    pub fn get_three_proxies(&self) -> Option<Vec<String>> {
+        let mut proxy_queue = self.proxy_queue.lock().unwrap();
+        if proxy_queue.len() < 3 {
+            return None;
+        }
+        let mut proxies = vec![];
+        for _ in 0..3 {
+            if let Some(proxy) = proxy_queue.pop_front() {
+                proxies.push(proxy);
+            }
+        }
+        proxies.shuffle(&mut rand::thread_rng());
+        Some(proxies)
     }
 }
 
@@ -54,5 +70,20 @@ mod tests {
         assert_eq!(manager.get_next_proxy(), Some("proxy3".to_string()));
         assert_eq!(manager.get_next_proxy(), Some("proxy4".to_string()));
         assert_eq!(manager.get_next_proxy(), None);
+    }
+
+    #[test]
+    fn test_get_three_proxies() {
+        let manager = ProxyManager::new();
+        manager.add_proxy("proxy1".to_string());
+        manager.add_proxy("proxy2".to_string());
+        manager.add_proxy("proxy3".to_string());
+        manager.add_proxy("proxy4".to_string());
+
+        let proxies = manager.get_three_proxies().unwrap();
+        assert_eq!(proxies.len(), 3);
+        assert!(proxies.contains(&"proxy1".to_string()));
+        assert!(proxies.contains(&"proxy2".to_string()));
+        assert!(proxies.contains(&"proxy3".to_string()));
     }
 }
