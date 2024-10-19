@@ -11,7 +11,7 @@ pub enum DnsError {
 }
 
 pub async fn resolve_dns(domain: &str) -> Result<String, DnsError> {
-    // Create a new HTTP client
+    // Create a new HTTPS client
     let client = Client::new();
     
     // Construct the DNS query URL
@@ -37,4 +37,42 @@ pub async fn resolve_dns(domain: &str) -> Result<String, DnsError> {
     
     // Return an error if the response is invalid
     Err(DnsError::InvalidResponse)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tokio::runtime::Runtime;
+    use mockito::mock;
+
+    #[test]
+    fn test_resolve_dns_success() {
+        let _m = mock("GET", "/dns-query?name=example.com")
+            .with_header("content-type", "application/dns-json")
+            .with_body(r#"{"Answer":[{"data":"93.184.216.34"}]}"#)
+            .create();
+
+        let rt = Runtime::new().unwrap();
+        let result = rt.block_on(resolve_dns("example.com")).unwrap();
+        assert_eq!(result, "93.184.216.34");
+    }
+
+    #[test]
+    fn test_resolve_dns_invalid_response() {
+        let _m = mock("GET", "/dns-query?name=example.com")
+            .with_header("content-type", "application/dns-json")
+            .with_body(r#"{}"#)
+            .create();
+
+        let rt = Runtime::new().unwrap();
+        let result = rt.block_on(resolve_dns("example.com"));
+        assert!(matches!(result, Err(DnsError::InvalidResponse)));
+    }
+
+    #[test]
+    fn test_resolve_dns_network_error() {
+        let rt = Runtime::new().unwrap();
+        let result = rt.block_on(resolve_dns("invalid_domain"));
+        assert!(matches!(result, Err(DnsError::Network(_))));
+    }
 }
