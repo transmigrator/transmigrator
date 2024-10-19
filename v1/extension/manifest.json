@@ -2,14 +2,9 @@
   "manifest_version": 3,
   "name": "Transmigrator",
   "version": "1.0",
-  "description": "An overlay network in Rust following NIST SP 800-171 standards on safety-critical systems as a WebAssembly extension compatible with major browsers for any OS.",
   "permissions": [
     "storage",
-    "activeTab",
-    "https://*/*",
-    "proxy",
-    "webRequest",
-    "webRequestBlocking"
+    "activeTab"
   ],
   "action": {
     "default_popup": "popup.html",
@@ -18,9 +13,6 @@
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
     }
-  },
-  "background": {
-    "service_worker": "background.js"
   },
   "host_permissions": [
     "https://*/*"
