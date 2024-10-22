@@ -30,7 +30,7 @@
 
 -The system will allow 2 session modes: higher threat profile (ER) and highest threat profile (EST)
 
--The default EST means if the user wants to make a second HTTP request, there is a new session
+-The default EST implies if the user wants to make a second HTTP request, there is a new session
 
 -This means new proxy chains and repeating the TCP, CONNECT, and TLS process before HTTP
 
