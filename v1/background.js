@@ -69,10 +69,31 @@ async function handleRequest(details) {
 
 // Send packet through proxy chain
 async function sendPacketThroughProxyChain(packet, chain, resolvedIP, port) {
-  // Implement TCP handshake, CONNECT request, and TLS handshake logic here
-  // This is a placeholder for the actual implementation
-  console.log(`Sending packet through proxy chain: ${chain}, to IP: ${resolvedIP}, port: ${port}`);
-  // Example: Use WebSocket or other methods to send the packet through the proxy chain
+  try {
+    // Establish TCP connection to each proxy in the chain
+    for (let i = 0; i < chain.length; i++) {
+      const proxy = chain[i];
+      console.log(`Establishing TCP connection to proxy: ${proxy}`);
+      // Implement TCP connection logic here (e.g., using WebSocket or other methods)
+    }
+
+    // Send CONNECT request through each proxy in the chain
+    for (let i = 0; i < chain.length; i++) {
+      const proxy = chain[i];
+      console.log(`Sending CONNECT request through proxy: ${proxy}`);
+      // Implement CONNECT request logic here
+    }
+
+    // Perform TLS handshake with the final destination server
+    console.log(`Performing TLS handshake with server: ${resolvedIP}:${port}`);
+    // Implement TLS handshake logic here
+
+    // Send the packet through the established proxy chain
+    console.log(`Sending packet through proxy chain: ${chain}, to IP: ${resolvedIP}, port: ${port}`);
+    // Implement packet sending logic here (e.g., using WebSocket or other methods)
+  } catch (error) {
+    console.error(`Error sending packet through proxy chain: ${error}`);
+  }
 }
 
 // DNS over HTTPS (DoH) resolution
