@@ -2,6 +2,13 @@ let proxyList = [];
 let proxyQueue = [];
 let sessionMode = 'EST'; // Default session mode
 
+// Change session mode
+function changeSessionMode(mode) {
+  if (mode === 'EST' || mode === 'ER') {
+    sessionMode = mode;
+  }
+}
+
 // Load proxies from a .txt file
 function loadProxies(file) {
   fetch(file)
@@ -20,13 +27,6 @@ function resolveDNS(hostname) {
       'Accept': 'application/dns-json'
     }
   }).then(response => response.json());
-}
-
-// Change session mode
-function changeSessionMode(mode) {
-  if (mode === 'EST' || mode === 'ER') {
-    sessionMode = mode;
-  }
 }
 
 // Handle HTTP requests
