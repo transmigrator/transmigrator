@@ -12,27 +12,25 @@ function loadProxies(file) {
     });
 }
 
-// Shuffle proxies to form a chain
-function shuffleProxies(proxies) {
-  for (let i = proxies.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [proxies[i], proxies[j]] = [proxies[j], proxies[i]];
-  }
-  return proxies;
+// DNS over HTTPS (DoH) resolution
+function resolveDNS(hostname) {
+  const url = `https://cloudflare-dns.com/dns-query?name=${hostname}`;
+  return fetch(url, {
+    headers: {
+      'Accept': 'application/dns-json'
+    }
+  }).then(response => response.json());
 }
 
-// Create a proxy chain
-function createProxyChain() {
-  if (proxyQueue.length < 3) {
-    proxyQueue = [...proxyList];
+// Change session mode
+function changeSessionMode(mode) {
+  if (mode === 'EST' || mode === 'ER') {
+    sessionMode = mode;
   }
-  const chain = shuffleProxies(proxyQueue.splice(0, 3));
-  return chain;
 }
 
 // Handle HTTP requests
 async function handleRequest(details) {
-  const chain = createProxyChain();
   const requestUrl = new URL(details.url);
 
   // Perform DoH resolution
@@ -54,6 +52,7 @@ async function handleRequest(details) {
 
   // Perform TCP handshake, CONNECT request, and TLS handshake for each packet
   for (const packet of packets) {
+    const chain = createProxyChain();
     await sendPacketThroughProxyChain(packet, chain, resolvedIP, requestUrl.port);
   }
 
@@ -65,6 +64,24 @@ async function handleRequest(details) {
     // Close the session after one request
     // New session for next request
   }
+}
+
+// Shuffle proxies to form a chain
+function shuffleProxies(proxies) {
+  for (let i = proxies.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [proxies[i], proxies[j]] = [proxies[j], proxies[i]];
+  }
+  return proxies;
+}
+
+// Create a proxy chain
+function createProxyChain() {
+  if (proxyQueue.length < 3) {
+    proxyQueue = [...proxyList];
+  }
+  const chain = shuffleProxies(proxyQueue.splice(0, 3));
+  return chain;
 }
 
 // Send packet through proxy chain
@@ -93,23 +110,6 @@ async function sendPacketThroughProxyChain(packet, chain, resolvedIP, port) {
     // Implement packet sending logic here (e.g., using WebSocket or other methods)
   } catch (error) {
     console.error(`Error sending packet through proxy chain: ${error}`);
-  }
-}
-
-// DNS over HTTPS (DoH) resolution
-function resolveDNS(hostname) {
-  const url = `https://cloudflare-dns.com/dns-query?name=${hostname}`;
-  return fetch(url, {
-    headers: {
-      'Accept': 'application/dns-json'
-    }
-  }).then(response => response.json());
-}
-
-// Change session mode
-function changeSessionMode(mode) {
-  if (mode === 'EST' || mode === 'ER') {
-    sessionMode = mode;
   }
 }
 
