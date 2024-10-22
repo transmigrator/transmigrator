@@ -4,7 +4,7 @@
 
 -In order to segment the traffic, the size of the future HTTP request is pre-calculated but not sent yet
 
--For the HTTP request, it will hard-code a max packet size of 576 bytes and min packet number of 3
+-For the HTTP requests, it hard-codes a max packet size of 576 bytes and min packet number of 3
 
 -Before this it will have to do DoH resolution, TCP handshake, CONNECT request, TLS handshake
 
