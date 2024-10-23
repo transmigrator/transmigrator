@@ -36,9 +36,9 @@
 
 -Users can opt for ER that will keep the sessions open, allowing for new HTTP requests/responses
 
--In ER, after 1st HTTP request the 576-byte limit does not apply to fit packets in existing segments
+-In ER, after 1st request normal limits do not apply with next segments reusing the existing chains 
 
--With EST, only one HTTP request packet per proxy chain and no further request in that segment
+-With EST, only one HTTP request segment/packet per chain and no further request in that chain
 
 -When Firefox browser is closed, it acts as an automatic kill switch for the add-on (no persistence)
 
