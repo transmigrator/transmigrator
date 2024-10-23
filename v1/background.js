@@ -53,9 +53,13 @@ async function handleRequest(details) {
     packets.push(details.requestBody.raw[0].bytes.slice(i, i + segmentSize));
   }
 
+  // Create proxy chains for each packet
+  const proxyChains = packets.map(() => createProxyChain());
+
   // Perform TCP handshake, CONNECT request, and TLS handshake for each packet
-  for (const packet of packets) {
-    const chain = createProxyChain();
+  for (let i = 0; i < packets.length; i++) {
+    const packet = packets[i];
+    const chain = proxyChains[i];
     try {
       let ws;
       for (const proxy of chain) {
@@ -72,20 +76,20 @@ async function handleRequest(details) {
     }
   }
 
-  // Monitor success rate
+  // Monitor success rate and issue a warning if it drops below 50%
   monitorSuccessRate();
 
   // Handle session mode
   if (sessionMode === 'ER') {
     // Keep the session open for further requests
-    // No need to segment further requests
+    // Send segments reusing existing chains for further requests
   } else {
     // Close the session after one request
     // New session for next request
   }
 }
 
-// Shuffle proxies to form a chain
+// Shuffle the selected proxies to randomize their roles
 function shuffleProxies(proxies) {
   for (let i = proxies.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -94,19 +98,55 @@ function shuffleProxies(proxies) {
   return proxies;
 }
 
-// Create a proxy chain
-function createProxyChain() {
-  if (proxyQueue.length < 3) {
-    proxyQueue = [...proxyList];
+// Monitor success rate and issue a warning if it drops below 50%
+function monitorSuccessRate() {
+  const totalRequests = successCount + failureCount;
+  if (totalRequests > 0) {
+    const successRate = (successCount / totalRequests) * 100;
+    if (successRate < 50) {
+      console.warn('Warning: Success rate has dropped below 50%');
+      // Reload proxies if success rate drops below 50%
+      loadProxies('path/to/proxies.txt');
+    }
   }
-  let chain = shuffleProxies(proxyQueue.splice(0, 3));
-  chain = chain.filter(proxy => !deadProxies.has(proxy));
-  return chain;
 }
 
 // Mark proxies as dead
 function markProxyAsDead(chain) {
   chain.forEach(proxy => deadProxies.add(proxy));
+}
+
+// Create a proxy chain
+function createProxyChain() {
+  // Ensure the queue has at least 9 live proxies
+  if (proxyQueue.filter(proxy => !deadProxies.has(proxy)).length < 9) {
+    proxyQueue = [...proxyList];
+  }
+
+  // Take the next 3 live proxies from the queue
+  let chain = [];
+  while (chain.length < 3 && proxyQueue.length > 0) {
+    const proxy = proxyQueue.shift();
+    if (!deadProxies.has(proxy)) {
+      chain.push(proxy);
+    }
+  }
+
+  // If we don't have enough proxies, refill the queue and try again
+  if (chain.length < 3) {
+    proxyQueue = [...proxyList];
+    while (chain.length < 3 && proxyQueue.length > 0) {
+      const proxy = proxyQueue.shift();
+      if (!deadProxies.has(proxy)) {
+        chain.push(proxy);
+      }
+    }
+  }
+
+  // Shuffle the selected proxies to randomize their roles
+  chain = shuffleProxies(chain);
+
+  return chain;
 }
 
 // Establish TCP connection to a proxy
@@ -155,19 +195,6 @@ async function sendPacket(ws, packet) {
     ws.onmessage = (event) => resolve(event.data);
     ws.onerror = (error) => reject(error);
   });
-}
-
-// Monitor success rate and issue a warning if it drops below 50%
-function monitorSuccessRate() {
-  const totalRequests = successCount + failureCount;
-  if (totalRequests > 0) {
-    const successRate = (successCount / totalRequests) * 100;
-    if (successRate < 50) {
-      console.warn('Warning: Success rate has dropped below 50%');
-      // Reload proxies if success rate drops below 50%
-      loadProxies('path/to/proxies.txt');
-    }
-  }
 }
 
 // Add event listener for web requests
