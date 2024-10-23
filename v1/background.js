@@ -4,7 +4,7 @@ let deadProxies = new Set();
 let sessionMode = 'EST'; // Default session mode
 let liveCount = 0;
 let failureCount = 0;
-let deadCount = 0; // Added deadCount
+let deadCount = 0;
 
 // Change session mode (optional)
 function changeSessionMode(mode) {
@@ -44,22 +44,22 @@ async function handleRequest(details) {
   // Calculate the size of the HTTP request
   const requestSize = new TextEncoder().encode(details.requestBody.raw[0].bytes).length;
 
-  // Segment the HTTP request into a minimum of 3 packets with a maximum body size of 576 bytes
-  const maxPacketSize = 576;
-  const minPacketNumber = 3;
-  const packets = [];
-  const segmentSize = Math.max(Math.ceil(requestSize / minPacketNumber), maxPacketSize);
+  // Segment the HTTP request into a minimum of 3 segments with a maximum body size of 576 bytes
+  const maxSegmentSize = 576;
+  const minSegmentNumber = 3;
+  const segments = [];
+  const segmentSize = Math.max(Math.ceil(requestSize / minSegmentNumber), maxSegmentSize);
 
   for (let i = 0; i < requestSize; i += segmentSize) {
-    packets.push(details.requestBody.raw[0].bytes.slice(i, i + segmentSize));
+    segments.push(details.requestBody.raw[0].bytes.slice(i, i + segmentSize));
   }
 
-  // Create proxy chains for each packet (body segment)
-  const proxyChains = packets.map(() => createProxyChain());
+  // Create proxy chains for each segment (body segment)
+  const proxyChains = segments.map(() => createProxyChain());
 
-  // Perform TCP handshake, CONNECT request, and TLS handshake for each packet
-  for (let i = 0; i < packets.length; i++) {
-    const packet = packets[i];
+  // Perform TCP handshake, CONNECT request, and TLS handshake for each segment
+  for (let i = 0; i < segments.length; i++) {
+    const segment = segments[i];
     const chain = proxyChains[i];
     try {
       let ws;
@@ -68,10 +68,10 @@ async function handleRequest(details) {
         await sendCONNECTRequest(ws, resolvedIP, requestUrl.port);
       }
       const wss = await performTLSHandshake(ws, resolvedIP, requestUrl.port);
-      await sendPacket(wss, packet);
+      await sendSegment(wss, segment);
       liveCount++;
     } catch (error) {
-      console.error(`Error sending packet through proxy chain: ${error}`);
+      console.error(`Error sending segment through proxy chain: ${error}`);
       failureCount++;
       markProxyAsDead(chain);
     }
@@ -191,11 +191,11 @@ async function performTLSHandshake(ws, resolvedIP, port) {
   });
 }
 
-// Send packet through the established proxy chain
-async function sendPacket(ws, packet) {
-  // Implement packet sending logic here
+// Send segment through the established proxy chain
+async function sendSegment(ws, segment) {
+  // Implement segment sending logic here
   return new Promise((resolve, reject) => {
-    ws.send(packet);
+    ws.send(segment);
     ws.onmessage = (event) => resolve(event.data);
     ws.onerror = (error) => reject(error);
   });
