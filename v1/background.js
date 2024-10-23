@@ -40,10 +40,10 @@ async function handleRequest(details) {
   const dnsResponse = await resolveDNS(requestUrl.hostname);
   const resolvedIP = dnsResponse.Answer[0].data;
 
-  // Pre-calculate the size of the HTTP request
+  // Calculate the size of the HTTP request
   const requestSize = new TextEncoder().encode(details.requestBody.raw[0].bytes).length;
 
-  // Segment the HTTP request into packets of 576 bytes with a minimum of 3 packets
+  // Segment the HTTP request into a minimum of 3 packets with a maximum body size of 576 bytes
   const maxPacketSize = 576;
   const minPacketNumber = 3;
   const packets = [];
@@ -53,7 +53,7 @@ async function handleRequest(details) {
     packets.push(details.requestBody.raw[0].bytes.slice(i, i + segmentSize));
   }
 
-  // Create proxy chains for each packet
+  // Create proxy chains for each packet (body segment)
   const proxyChains = packets.map(() => createProxyChain());
 
   // Perform TCP handshake, CONNECT request, and TLS handshake for each packet
@@ -76,16 +76,18 @@ async function handleRequest(details) {
     }
   }
 
-  // Monitor success rate (live proxies) and issue a warning if it drops below 50%
-  monitorSuccessRate();
+  // Monitor proxy mortality and issue a warning if it reaches 50%
+  monitorMortalityRate();
 
   // Handle session mode
   if (sessionMode === 'ER') {
-    // Keep the session open for further requests
+    // Body segments of the same request share the same header
+    // Include session state cookies in the header
     // Send segments reusing existing chains for further requests
   } else {
-    // Keep the response but close the session after one request
-    // New session for next request and each subsequent request
+    // Body segments of the same request still share the same header
+    // Do not include session state cookies in the header
+    // New chains for all subsequent requests
   }
 }
 
@@ -98,13 +100,13 @@ function shuffleProxies(proxies) {
   return proxies;
 }
 
-// Monitor success rate (live proxies) and issue a warning if it drops below 50%
-function monitorSuccessRate() {
-  const totalRequests = successCount + failureCount;
+// Monitor proxy mortality and issue a warning if it reaches 50%
+function monitorMortalityRate() {
+  const totalRequests = deadCount + liveCount;
   if (totalRequests > 0) {
-    const successRate = (successCount / totalRequests) * 100;
-    if (successRate < 50) {
-      console.warn('Warning: Success rate has dropped below 50%');
+    const mortalityRate = (deadCount / totalRequests) * 100;
+    if (mortalityRate > 50) {
+      console.warn('Warning: Proxy mortality has reached 50%');
       // Reload proxies if success rate drops below 50%
       loadProxies('path/to/proxies.txt');
     }
