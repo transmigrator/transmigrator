@@ -1,6 +1,6 @@
 -The user temporarily loads a .txt file with a list of IP-only SOCKS5 catching all the proxies inside
 
--After this initial fetch, a .txt file is no longer needed unless success rate drops under 50% (warning)
+-After this initial fetch, a .txt file is no longer needed unless proxy mortality reaches 50% (warning)
 
 -In order to segment the traffic, the size of the future HTTP request is calculated while not yet sent
 
