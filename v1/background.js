@@ -57,39 +57,58 @@ async function handleRequest(details) {
   // Create proxy chains for each segment (body segment)
   const proxyChains = segments.map(() => createProxyChain());
 
-  // Perform TCP handshake, CONNECT request, and TLS handshake for each segment
-  for (let i = 0; i < segments.length; i++) {
-    const segment = segments[i];
-    const chain = proxyChains[i];
-    try {
-      let ws;
-      for (const proxy of chain) {
-        ws = await establishTCPConnection(proxy);
-        await sendCONNECTRequest(ws, resolvedIP, requestUrl.port);
+  // Handle session mode
+  if (sessionMode === 'ER') {
+    // Body segments of the same request share the same header
+    // Include session state cookies in the header
+    const headers = new Headers(details.requestHeaders);
+    headers.append('Cookie', document.cookie);
+
+    for (let i = 0; i < segments.length; i++) {
+      const segment = segments[i];
+      const chain = proxyChains[i];
+      try {
+        let ws;
+        for (const proxy of chain) {
+          ws = await establishTCPConnection(proxy);
+          await sendCONNECTRequest(ws, resolvedIP, requestUrl.port);
+        }
+        const wss = await performTLSHandshake(ws, resolvedIP, requestUrl.port);
+        await sendSegment(wss, segment, headers);
+        liveCount++;
+      } catch (error) {
+        console.error(`Error sending segment through proxy chain: ${error}`);
+        failureCount++;
+        markProxyAsDead(chain);
       }
-      const wss = await performTLSHandshake(ws, resolvedIP, requestUrl.port);
-      await sendSegment(wss, segment);
-      liveCount++;
-    } catch (error) {
-      console.error(`Error sending segment through proxy chain: ${error}`);
-      failureCount++;
-      markProxyAsDead(chain);
+    }
+  } else {
+    // Body segments of the same request still share the same header
+    // Do not include session state cookies in the header
+    const headers = new Headers(details.requestHeaders);
+
+    for (let i = 0; i < segments.length; i++) {
+      const segment = segments[i];
+      const chain = proxyChains[i];
+      try {
+        let ws;
+        for (const proxy of chain) {
+          ws = await establishTCPConnection(proxy);
+          await sendCONNECTRequest(ws, resolvedIP, requestUrl.port);
+        }
+        const wss = await performTLSHandshake(ws, resolvedIP, requestUrl.port);
+        await sendSegment(wss, segment, headers);
+        liveCount++;
+      } catch (error) {
+        console.error(`Error sending segment through proxy chain: ${error}`);
+        failureCount++;
+        markProxyAsDead(chain);
+      }
     }
   }
 
   // Monitor proxy mortality and issue a warning if it reaches 50%
   monitorMortalityRate();
-
-  // Handle session mode
-  if (sessionMode === 'ER') {
-    // Body segments of the same request share the same header
-    // Include session state cookies in the header
-    // Send segments reusing existing chains for further requests
-  } else {
-    // Body segments of the same request still share the same header
-    // Do not include session state cookies in the header
-    // New chains for all subsequent requests
-  }
 }
 
 // Shuffle the selected proxies to randomize their roles
