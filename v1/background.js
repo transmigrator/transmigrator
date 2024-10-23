@@ -5,7 +5,7 @@ let sessionMode = 'EST'; // Default session mode
 let successCount = 0;
 let failureCount = 0;
 
-// Change session mode
+// Change session mode (optional)
 function changeSessionMode(mode) {
   if (mode === 'EST' || mode === 'ER') {
     sessionMode = mode;
@@ -76,7 +76,7 @@ async function handleRequest(details) {
     }
   }
 
-  // Monitor success rate and issue a warning if it drops below 50%
+  // Monitor success rate (live proxies) and issue a warning if it drops below 50%
   monitorSuccessRate();
 
   // Handle session mode
@@ -84,8 +84,8 @@ async function handleRequest(details) {
     // Keep the session open for further requests
     // Send segments reusing existing chains for further requests
   } else {
-    // Close the session after one request
-    // New session for next request
+    // Keep the response but close the session after one request
+    // New session for next request and each subsequent request
   }
 }
 
@@ -98,7 +98,7 @@ function shuffleProxies(proxies) {
   return proxies;
 }
 
-// Monitor success rate and issue a warning if it drops below 50%
+// Monitor success rate (live proxies) and issue a warning if it drops below 50%
 function monitorSuccessRate() {
   const totalRequests = successCount + failureCount;
   if (totalRequests > 0) {
@@ -132,7 +132,7 @@ function createProxyChain() {
     }
   }
 
-  // If we don't have enough proxies, refill the queue and try again
+  // If we do not have enough proxies, refill the queue and try again
   if (chain.length < 3) {
     proxyQueue = [...proxyList];
     while (chain.length < 3 && proxyQueue.length > 0) {
