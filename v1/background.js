@@ -2,8 +2,9 @@ let proxyList = [];
 let proxyQueue = [];
 let deadProxies = new Set();
 let sessionMode = 'EST'; // Default session mode
-let successCount = 0;
+let liveCount = 0;
 let failureCount = 0;
+let deadCount = 0; // Added deadCount
 
 // Change session mode (optional)
 function changeSessionMode(mode) {
@@ -68,7 +69,7 @@ async function handleRequest(details) {
       }
       const wss = await performTLSHandshake(ws, resolvedIP, requestUrl.port);
       await sendPacket(wss, packet);
-      successCount++;
+      liveCount++;
     } catch (error) {
       console.error(`Error sending packet through proxy chain: ${error}`);
       failureCount++;
@@ -102,12 +103,12 @@ function shuffleProxies(proxies) {
 
 // Monitor proxy mortality and issue a warning if it reaches 50%
 function monitorMortalityRate() {
-  const totalRequests = deadCount + liveCount;
-  if (totalRequests > 0) {
-    const mortalityRate = (deadCount / totalRequests) * 100;
-    if (mortalityRate > 50) {
-      console.warn('Warning: Proxy mortality has reached 50%');
-      // Reload proxies if success rate drops below 50%
+  const totalProxies = deadCount + liveCount;
+  if (totalProxies > 0) {
+    const mortalityRate = (deadCount / totalProxies) * 100;
+    if (mortalityRate >= 50) {
+      console.warn('Warning: Proxy mortality has reached 50%. Please load a new proxy list.');
+      // Reload proxies if mortality rate reaches 50%
       loadProxies('path/to/proxies.txt');
     }
   }
@@ -116,6 +117,7 @@ function monitorMortalityRate() {
 // Mark proxies as dead
 function markProxyAsDead(chain) {
   chain.forEach(proxy => deadProxies.add(proxy));
+  deadCount++; // Increment deadCount
 }
 
 // Create a proxy chain
