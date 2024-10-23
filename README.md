@@ -34,7 +34,7 @@
 
 -The system will allow 2 session modes: higher threat profile (ER) and highest threat profile (EST)
 
--In essence, ER includes session state (cookies) in the shared header and EST does not include that
+-In essence, ER includes session state cookies in the shared header and EST does not include them
 
 -The default EST implies if the user wants to make a second HTTP request, there is a new session
 
