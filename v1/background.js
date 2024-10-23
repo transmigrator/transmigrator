@@ -1,5 +1,6 @@
 let proxyList = [];
 let proxyQueue = [];
+let deadProxies = new Set();
 let sessionMode = 'EST'; // Default session mode
 let successCount = 0;
 let failureCount = 0;
@@ -67,6 +68,7 @@ async function handleRequest(details) {
     } catch (error) {
       console.error(`Error sending packet through proxy chain: ${error}`);
       failureCount++;
+      markProxyAsDead(chain);
     }
   }
 
@@ -97,8 +99,14 @@ function createProxyChain() {
   if (proxyQueue.length < 3) {
     proxyQueue = [...proxyList];
   }
-  const chain = shuffleProxies(proxyQueue.splice(0, 3));
+  let chain = shuffleProxies(proxyQueue.splice(0, 3));
+  chain = chain.filter(proxy => !deadProxies.has(proxy));
   return chain;
+}
+
+// Mark proxies as dead
+function markProxyAsDead(chain) {
+  chain.forEach(proxy => deadProxies.add(proxy));
 }
 
 // Establish TCP connection to a proxy
@@ -156,6 +164,8 @@ function monitorSuccessRate() {
     const successRate = (successCount / totalRequests) * 100;
     if (successRate < 50) {
       console.warn('Warning: Success rate has dropped below 50%');
+      // Reload proxies if success rate drops below 50%
+      loadProxies('path/to/proxies.txt');
     }
   }
 }
