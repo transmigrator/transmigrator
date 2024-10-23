@@ -28,7 +28,7 @@
 
 -It starts with the next 3 proxies from a circular queue of proxies in the cache, fetched from the .txt
 
--To form a proxy chain, each 3 proxies are shuffled in a random permutation (no same chain roles)
+-To form a proxy chain, each 3 proxies are shuffled in a random permutation (changing chain roles)
 
 -Any server response is consolidated at the client-side after fully receiving the proxy chain segments 
 
