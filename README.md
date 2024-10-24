@@ -48,4 +48,4 @@
 
 -When the Firefox browser is closed, it acts as an automatic kill switch for the add-on (no persistence)
 
--Cryptographic keys live at the RAM, never stored, merely rewritten and/or forgotten without leaks
+-All cryptographic keys live at the RAM, never stored, merely rewritten and/or forgotten without leaks
