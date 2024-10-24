@@ -58,52 +58,27 @@ async function handleRequest(details) {
   const proxyChains = segments.map(() => createProxyChain());
 
   // Handle session mode
+  const headers = new Headers(details.requestHeaders);
   if (sessionMode === 'ER') {
-    // Body segments of the same request share the same header
-    // Include session state cookies in the header
-    const headers = new Headers(details.requestHeaders);
     headers.append('Cookie', document.cookie);
+  }
 
-    for (let i = 0; i < segments.length; i++) {
-      const segment = segments[i];
-      const chain = proxyChains[i];
-      try {
-        let ws;
-        for (const proxy of chain) {
-          ws = await establishTCPConnection(proxy);
-          await sendCONNECTRequest(ws, resolvedIP, requestUrl.port);
-        }
-        const wss = await performTLSHandshake(ws, resolvedIP, requestUrl.port);
-        await sendSegment(wss, segment, headers);
-        liveCount++;
-      } catch (error) {
-        console.error(`Error sending segment through proxy chain: ${error}`);
-        failureCount++;
-        markProxyAsDead(chain);
+  for (let i = 0; i < segments.length; i++) {
+    const segment = segments[i];
+    const chain = proxyChains[i];
+    try {
+      let ws;
+      for (const proxy of chain) {
+        ws = await establishTCPConnection(proxy);
+        await sendCONNECTRequest(ws, resolvedIP, requestUrl.port);
       }
-    }
-  } else {
-    // Body segments of the same request still share the same header
-    // Do not include session state cookies in the header
-    const headers = new Headers(details.requestHeaders);
-
-    for (let i = 0; i < segments.length; i++) {
-      const segment = segments[i];
-      const chain = proxyChains[i];
-      try {
-        let ws;
-        for (const proxy of chain) {
-          ws = await establishTCPConnection(proxy);
-          await sendCONNECTRequest(ws, resolvedIP, requestUrl.port);
-        }
-        const wss = await performTLSHandshake(ws, resolvedIP, requestUrl.port);
-        await sendSegment(wss, segment, headers);
-        liveCount++;
-      } catch (error) {
-        console.error(`Error sending segment through proxy chain: ${error}`);
-        failureCount++;
-        markProxyAsDead(chain);
-      }
+      const wss = await performTLSHandshake(ws, resolvedIP, requestUrl.port);
+      await sendSegment(wss, segment, headers);
+      liveCount++;
+    } catch (error) {
+      console.error(`Error sending segment through proxy chain: ${error}`);
+      failureCount++;
+      markProxyAsDead(chain);
     }
   }
 
@@ -172,12 +147,10 @@ function createProxyChain() {
   return chain;
 }
 
-// Establish WebSocket over TCP connection to a proxy
+// Establish WebSocket Secure (WSS) connection to a proxy
 async function establishTCPConnection(proxy) {
-  // Implement WSS connection logic here
-  // Example: Using WebSocket for simplicity
   return new Promise((resolve, reject) => {
-    const ws = new WebSocket(`ws://${proxy}`);
+    const ws = new WebSocket(`wss://${proxy}`);
     ws.onopen = () => resolve(ws);
     ws.onerror = (error) => reject(new Error(`Failed to establish TCP connection: ${error.message}`));
   });
@@ -185,8 +158,6 @@ async function establishTCPConnection(proxy) {
 
 // Send CONNECT request through a proxy
 async function sendCONNECTRequest(ws, resolvedIP, port) {
-  // Implement CONNECT request logic here
-  // Example: Sending a simple CONNECT request over WebSocket
   return new Promise((resolve, reject) => {
     ws.send(`CONNECT ${resolvedIP}:${port} HTTP/1.1\r\n\r\n`);
     ws.onmessage = (event) => {
@@ -201,8 +172,6 @@ async function sendCONNECTRequest(ws, resolvedIP, port) {
 
 // Perform TLS handshake with the final destination server
 async function performTLSHandshake(ws, resolvedIP, port) {
-  // Implement TLS handshake logic here
-  // Example: Using WebSocket Secure (wss) for simplicity
   return new Promise((resolve, reject) => {
     const wss = new WebSocket(`wss://${resolvedIP}:${port}`);
     wss.onopen = () => resolve(wss);
@@ -212,7 +181,6 @@ async function performTLSHandshake(ws, resolvedIP, port) {
 
 // Send segment through the established proxy chain
 async function sendSegment(ws, segment, headers) {
-  // Implement segment sending logic here
   return new Promise((resolve, reject) => {
     ws.send(segment);
     ws.onmessage = (event) => resolve(event.data);
@@ -230,4 +198,7 @@ browser.webRequest.onBeforeRequest.addListener(
 // Add listener for browser close to act as kill switch
 browser.windows.onRemoved.addListener(() => {
   // Clear cryptographic keys and other sensitive data
+  // Example: Clear session storage, local storage, etc.
+  sessionStorage.clear();
+  localStorage.clear();
 });
