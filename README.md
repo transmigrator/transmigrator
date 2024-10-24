@@ -6,13 +6,13 @@
 
 -For HTTP requests, it hard-codes a minimum of 3 segments with maximum body size of 576 bytes
 
--1st it must do DoH resolution, 2nd TCP handshake, 3rd CONNECT request, and 4th TLS handshake
+-1st must do DoH resolution, 2nd WebSocket (WSS), 3rd CONNECT request, and 4th TLS handshake
 
 -The DNS over HTTPS (DoH) resolution using Cloudflare will make all subsequent traffic look normal
 
--The TCP-CONNECT-TLS process is therefore adjusted to a now known amount of request segments
+-The WSS-CONNECT-TLS process is therefore adjusted to a now known amount of request segments
 
--Hard-coded limits are to be non-binding for TCP handshake, CONNECT request, and TLS handshake
+-Hard-coded limits are non-binding for the WebSocket (WSS), CONNECT request, and TLS handshake
 
 -Now it has an n number of proxy chains as a mesh of HTTPS connections between client and server
 
@@ -38,7 +38,7 @@
 
 -The default EST implies that if the user wants to make a follow-up HTTP request, it is a new session
 
--This means fresh proxy chains and repeating their TCP-CONNECT-TLS process for said new request
+-This means fresh proxy chains and repeating their WSS-CONNECT-TLS process for said new request
 
 -Users can select ER mode to keep sessions open, which follows up with new requests for responses
 
