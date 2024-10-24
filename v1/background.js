@@ -172,14 +172,14 @@ function createProxyChain() {
   return chain;
 }
 
-// Establish TCP connection to a proxy
+// Establish WebSocket over TCP connection to a proxy
 async function establishTCPConnection(proxy) {
-  // Implement TCP connection logic here
+  // Implement WSS connection logic here
   // Example: Using WebSocket for simplicity
   return new Promise((resolve, reject) => {
     const ws = new WebSocket(`ws://${proxy}`);
     ws.onopen = () => resolve(ws);
-    ws.onerror = (error) => reject(error);
+    ws.onerror = (error) => reject(new Error(`Failed to establish TCP connection: ${error.message}`));
   });
 }
 
@@ -206,17 +206,17 @@ async function performTLSHandshake(ws, resolvedIP, port) {
   return new Promise((resolve, reject) => {
     const wss = new WebSocket(`wss://${resolvedIP}:${port}`);
     wss.onopen = () => resolve(wss);
-    wss.onerror = (error) => reject(error);
+    wss.onerror = (error) => reject(new Error(`TLS handshake failed: ${error.message}`));
   });
 }
 
 // Send segment through the established proxy chain
-async function sendSegment(ws, segment) {
+async function sendSegment(ws, segment, headers) {
   // Implement segment sending logic here
   return new Promise((resolve, reject) => {
     ws.send(segment);
     ws.onmessage = (event) => resolve(event.data);
-    ws.onerror = (error) => reject(error);
+    ws.onerror = (error) => reject(new Error(`Failed to send segment: ${error.message}`));
   });
 }
 
