@@ -12,7 +12,7 @@
 
 -The WSS-CONNECT-TLS process is therefore adjusted to a now known amount of request segments
 
--Hard-coded limits are non-binding for the WebSocket (WSS), CONNECT request, and TLS handshake
+-Hard-coded limits are non-binding for all WebSocket (WSS), CONNECT request, and TLS handshake
 
 -Now it has an n number of proxy chains as a mesh of HTTPS connections between client and server
 
