@@ -1,0 +1,21 @@
+DUAL LICENSE
+
+Open Source License (AGPL-3.0-or-later)
+
+- Transmigrator is free software: you can redistribute and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation.
+
+- Transmigrator is distributed "as is", WITHOUT ANY WARRANTY. See the GNU Affero General Public License for details.
+
+- If you modify this software and deploy it as a service over a network, you must make the source code of your modified version available to the users.
+
+Commercial License
+
+- For proprietary use with private source code, a commercial license is available.
+
+- Contact project@transmigrator.org for commercial licenses, subject to negotiated terms.
+
+- This software is provided "as is", WITHOUT ANY WARRANTY. The licensor is not liable for any use of the software.
+
+License Selection
+
+- By using this software, you agree to be bound by either the AGPL or the commercial license. Compliance with the chosen license's terms is mandatory.
